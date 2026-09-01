@@ -944,22 +944,33 @@ form label {
 
 .client-button.is-active .client-icon { border-color: var(--accent); }
 
-.client-button span:last-child {
+.client-button .client-title {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 11px;
 }
 
-/* Sidebar Footer & Guide Panel */
-.sidebar-foot {
-  margin-top: auto;
-  padding: 17px;
-  border-top: 1px solid var(--glass-border);
-  color: var(--text-muted);
-  font: 8px/1 var(--mono);
-  text-transform: uppercase;
-  letter-spacing: .08em;
+.claude-kind {
+  color: #ff9ca2;
+  font-weight: 600;
+  text-decoration-line: underline;
+  text-decoration-color: rgba(255, 121, 130, .82);
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 4px;
+  text-decoration-skip-ink: auto;
+  text-shadow: 0 0 12px rgba(255, 92, 102, .12);
+}
+
+.client-button.is-active .claude-kind {
+  color: #ffb1b6;
+  text-decoration-color: #ff929a;
+  text-shadow: 0 0 14px rgba(255, 92, 102, .2);
+}
+
+.guide-heading .claude-kind {
+  color: #ff9ca2;
+  text-decoration-color: rgba(255, 121, 130, .86);
 }
 
 .guide-panel {
@@ -1008,7 +1019,27 @@ form label {
   font: 10px/1 var(--mono);
 }
 
-.quick-install { margin-bottom: 42px; }
+.quick-install { margin-bottom: 30px; }
+
+.quick-remove {
+  margin: 0 0 42px;
+  padding: 18px;
+  border: 1px solid rgba(248, 113, 113, 0.2);
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.09), rgba(255, 255, 255, 0.025));
+  border-radius: 14px;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.quick-remove .section-label { color: rgba(254, 202, 202, 0.82); }
+.quick-remove .section-label::after { background: rgba(248, 113, 113, 0.18); }
+.quick-remove .quick-note { line-height: 1.6; }
+.quick-remove .code-window {
+  margin-bottom: 0;
+  border-color: rgba(248, 113, 113, 0.16);
+  background: rgba(42, 18, 22, 0.2);
+}
+.quick-remove .copy-button { background: rgba(248, 113, 113, 0.1); }
+.quick-remove .copy-button:hover { background: rgba(220, 38, 38, 0.82); }
 
 .section-label {
   margin-bottom: 12px;
@@ -1205,7 +1236,7 @@ form label {
 
 .model-table-head, .model-row {
   display: grid;
-  grid-template-columns: minmax(240px, 1.4fr) 1fr 190px;
+  grid-template-columns: minmax(220px, 1.4fr) .8fr 160px 150px;
   align-items: center;
 }
 
@@ -1373,6 +1404,36 @@ form label {
 .token-balance.is-loading .token-balance-value {
   animation: balance-pulse 1s steps(2, end) infinite;
 }
+
+.model-health {
+  display: inline-flex;
+  width: max-content;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: rgba(255,255,255,.52);
+  background: rgba(255,255,255,.055);
+  font: 8px/1 var(--mono);
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.model-health::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,.34);
+}
+
+.model-health.is-available { color: #bceccd; background: rgba(79,185,117,.11); }
+.model-health.is-available::before { background: #9fe0b7; box-shadow: 0 0 10px rgba(112,220,151,.7); }
+.model-health.is-degraded { color: #f4d8a6; background: rgba(218,164,76,.11); }
+.model-health.is-degraded::before { background: #e9bd74; box-shadow: 0 0 10px rgba(233,189,116,.58); }
+.model-health.is-unavailable { color: #ff969c; background: rgba(255,82,92,.11); }
+.model-health.is-unavailable::before { background: #ff626b; box-shadow: 0 0 10px rgba(255,82,92,.6); }
 
 .token-balance.is-refreshing .status-dot {
   animation: balance-refresh-pulse 1.1s ease-in-out infinite;
@@ -1686,9 +1747,9 @@ form label {
     width: auto;
     min-width: max-content;
   }
-  .sidebar-title, .sidebar-foot { display: none; }
+  .sidebar-title { display: none; }
   .model-table-head, .model-row {
-    grid-template-columns: 1.4fr .8fr;
+    grid-template-columns: minmax(0,1.4fr) auto auto;
   }
   .provider { display: none; }
   .os-card { height: 250px; }
@@ -1751,9 +1812,10 @@ form label {
   .model-search { width: 100%; }
   .model-table-head { display: none; }
   .model-row {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: minmax(0,1fr) auto auto;
     padding: 12px;
   }
+  .model-health { padding:6px 8px; font-size:7px; }
   .coefficient small { display: none; }
   .token-balance {
     min-height: 215px;
@@ -2100,7 +2162,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   }
   .client-button { flex:0 0 auto; width:auto; max-width:82vw; }
   .guide-panel { overflow:hidden; }
-  .code-window,.manual-guide,.quick-install { min-width:0; max-width:100%; }
+  .code-window,.manual-guide,.quick-install,.quick-remove { min-width:0; max-width:100%; }
   .code-window pre { max-width:100%; overflow-x:auto; }
 }
 
@@ -2180,12 +2242,13 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .guide-heading h2 { font-size:20px; line-height:1.15; overflow-wrap:anywhere; }
   .guide-index { flex:0 0 auto; }
   .quick-install { margin-bottom:30px; }
+  .quick-remove { margin-bottom:30px; padding:14px 12px; }
   .code-head { padding-left:12px; }
   .copy-button { padding:9px 10px; }
   .code-window pre { padding:14px 12px; font-size:10px; }
 
   .model-table { border-radius:16px; }
-  .model-row { grid-template-columns:minmax(0,1fr) auto; gap:10px; }
+  .model-row { grid-template-columns:minmax(0,1fr) auto auto; gap:8px; }
   .model-name { min-width:0; gap:9px; font-size:11px; overflow-wrap:anywhere; }
   .model-name>span:last-child { min-width:0; overflow-wrap:anywhere; }
   .model-glyph { flex:0 0 28px; }
@@ -2261,7 +2324,6 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <button class="key-skip" id="skipKey" type="button" aria-label="Продолжить без API-ключа">
           <span data-i18n="skip_key">Без ключа</span><b>×</b>
         </button>
-        <span class="eyebrow" data-i18n="auth_step">01 / авторизация</span>
         <h1 data-i18n-html="connect_key">Один ключ.<br><em>Все модели.</em></h1>
         <p data-i18n="key_intro">Проверим ключ, покажем баланс и доступные модели. Ключ используется только в текущей вкладке и отправляется сервисам проверки и каталога.</p>
         <form id="keyForm" autocomplete="off">
@@ -2316,7 +2378,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <span class="nav-label" data-i18n="nav_guides">Инструкции</span>
       </button>
       <button class="nav-link" data-view="models">
-        <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">38</span>
+        <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">34</span>
       </button>
       <button class="nav-link" data-view="usage">
         <span class="nav-label" data-i18n="nav_usage">История</span>
@@ -2372,7 +2434,6 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <aside class="client-sidebar">
           <div class="sidebar-title"><span data-i18n="clients">Клиенты</span><span id="clientCount">00</span></div>
           <div class="client-list" id="clientList"></div>
-          <div class="sidebar-foot"><span class="status-dot"></span> <span data-i18n="configs_ready">Конфигурации готовы</span></div>
         </aside>
         <article class="guide-panel" id="guidePanel">
           <div class="loading-state">
@@ -2399,6 +2460,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <div class="model-table-head">
           <span data-i18n="model">Модель</span>
           <span data-i18n="provider">Провайдер</span>
+          <span data-i18n="model_status">Статус</span>
           <span data-i18n="coefficient">Коэффициент</span>
         </div>
         <div id="modelList"></div>
@@ -2437,60 +2499,59 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       <div class="page-head">
         <div>
           <span class="eyebrow">FAQ</span>
-          <h1 data-i18n="faq_title">Частые вопросы и ошибки</h1>
-          <p data-i18n="faq_intro">Решения самых распространённых проблем при работе с сервисом.</p>
+          <h1 data-i18n="faq_title">Частые вопросы о работе с ИИ</h1>
+          <p data-i18n="faq_intro">Как выбрать модель, управлять контекстом и расходом токенов, а также справляться с ошибками генерации.</p>
         </div>
       </div>
 
       <div class="faq-grid">
         <article class="faq-card">
           <div class="faq-card-header">
-            <div class="faq-icon">⚠️</div>
-            <h2 data-i18n="faq_error1_title">Основной домен не открывается или запрос висит</h2>
+            <div class="faq-icon">✦</div>
+            <h2 data-i18n="faq_error1_title">Как выбрать подходящую модель?</h2>
           </div>
           <div class="faq-card-body">
-            <p data-i18n="faq_error1_text">В начале Docs переключи домен с «Основной» на «Резервный», затем заново скопируй команду: все endpoint'ы и скрипты ниже обновляются вместе с выбором. Полностью перезапусти клиент.</p>
+            <p data-i18n="faq_error1_text">Для коротких ответов, перевода и простых правок выбирайте быструю модель. Для программирования, анализа документов и многоэтапных задач лучше подойдёт модель с усиленным рассуждением. Начинайте со сбалансированного варианта и переходите на более мощный только тогда, когда качества действительно не хватает.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-card-header">
-            <div class="faq-icon">🔑</div>
-            <h2 data-i18n="faq_error2_title">После setup клиент просит войти или не видит CVC_API_KEY</h2>
+            <div class="faq-icon">◫</div>
+            <h2 data-i18n="faq_error2_title">Почему ИИ забывает начало диалога или повторяется?</h2>
           </div>
           <div class="faq-card-body">
-            <p data-i18n="faq_error2_text">Сначала полностью закрой и заново открой клиент. Для VS Code Remote, SSH, Cursor Remote, VPS и server workspace запускай setup на удалённой машине, где работает extension host, а не на ноутбуке. Если VS Code Remote не перечитал окружение, выполни команду ниже на удалённой машине и переподключись.</p>
-            <pre><code>pkill -f 'codex app-server|[.]vscode-server/.*/server/out/bootstrap-fork --type=extensionHost'</code></pre>
+            <p data-i18n="faq_error2_text">У каждой модели ограничен объём контекста. В длинном диалоге ранние сообщения могут сокращаться или перестать учитываться. Начните новый чат и перенесите в него краткое резюме, важные требования и только нужные файлы. Это обычно повышает точность и уменьшает повторения.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-card-header">
-            <div class="faq-icon">🚫</div>
-            <h2 data-i18n="faq_error3_title">401, Incorrect API key или запрос уходит на api.openai.com</h2>
+            <div class="faq-icon">◎</div>
+            <h2 data-i18n="faq_error3_title">Из чего складывается расход токенов?</h2>
           </div>
           <div class="faq-card-body">
-            <p data-i18n="faq_error3_text">Клиент всё ещё обращается напрямую в OpenAI, поэтому ключ CheapVibeCode там не принимается. Запусти setup на машине, где реально работает клиент, и перезапусти его. Если 401 появился после переустановки, один раз выполни «Отключиться от проекта», затем снова запусти setup: это уберёт старый OpenAI auth/config.</p>
+            <p data-i18n="faq_error3_text">Входные токены — это ваш запрос, история диалога и переданные файлы; выходные — ответ модели. Кэш показывает повторно использованный контекст, а режим рассуждения может увеличивать итоговый расход. Чтобы тратить меньше, сокращайте длинные диалоги и отправляйте только материалы, необходимые для текущей задачи.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-card-header">
-            <div class="faq-icon">🔍</div>
-            <h2 data-i18n="faq_error4_title">Модель не появилась или клиент пишет Model not found</h2>
+            <div class="faq-icon">◷</div>
+            <h2 data-i18n="faq_error4_title">Почему ответ генерируется слишком долго?</h2>
           </div>
           <div class="faq-card-body">
-            <p data-i18n="faq_error4_text">Сверь точный Model ID со списком моделей в Docs или ответом /v1/models и проверь, разрешена ли модель выбранному ключу. В Codex и ZCode используй обычный ID, в OpenCode и Kimi — cheapvibecode/&lt;model&gt;, в Cursor — &lt;model&gt;-cursor. После изменения модели или ключа перезапусти клиент. Отключённая модель временно скрывается из каталога.</p>
+            <p data-i18n="faq_error4_text">Скорость зависит от выбранной модели, длины контекста, уровня рассуждения и ожидаемого объёма ответа. Сократите запрос, уберите лишние файлы, уменьшите reasoning effort или включите Fast, если он доступен. Если задержка необычно большая, повторите запрос один раз либо выберите другую модель.</p>
           </div>
         </article>
 
         <article class="faq-card">
           <div class="faq-card-header">
-            <div class="faq-icon">📊</div>
-            <h2 data-i18n="faq_error5_title">Что означают 429, 502/503/504, 524 и capacity_unavailable?</h2>
+            <div class="faq-icon">!</div>
+            <h2 data-i18n="faq_error5_title">Что делать, если запрос завершился ошибкой?</h2>
           </div>
           <div class="faq-card-body">
-            <p data-i18n="faq_error5_text">429 означает ограничение частоты: дождись Retry-After и уменьши число параллельных запросов. 502/503/capacity_unavailable означают временную недоступность upstream или свободных аккаунтов. При 524 сначала поменяй домен с «Основной» на второй — «Резервный» — в начале Docs, заново скопируй команду настройки и полностью перезапусти клиент. 504/upstream_timeout означает, что upstream не успел ответить: подожди, повтори с backoff один раз и при необходимости выбери другую доступную модель. Если ошибка повторяется, передай строку из логов поддержке.</p>
+            <p data-i18n="faq_error5_text">При Model not found проверьте точное название модели в каталоге. Ошибка 429 означает слишком много запросов: немного подождите и уменьшите их параллельность. Ошибки 502, 503, 504 и capacity unavailable обычно временные — повторите запрос с паузой или переключитесь на другую модель. Не запускайте много повторов одновременно.</p>
           </div>
         </article>
       </div>
@@ -3882,12 +3943,16 @@ const state = {
   data: { windows: [], mac: [], linux: [] },
   activeApp: null,
   balance: { status: 'idle', value: null, errorKey: '', serverMessage: '', updatedAt: null, refreshing: false },
-  usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' }
+  usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' },
+  modelsUpdatedAt: null
 };
 safeStorage.removeItem('cerberus_api_key');
 const BALANCE_API_ENDPOINT = 'https://api-token.alexgamer7307.workers.dev?v=3';
+const MODELS_PROXY_ENDPOINT = 'https://prompt-port-models.alexgamer7307.workers.dev?v=1';
 const BALANCE_ATTEMPT_TIMEOUT_MS = 8000;
 const MODELS_TIMEOUT_MS = 12000;
+const MODELS_INITIAL_TIMEOUT_MS = 6000;
+const MODELS_REFRESH_INTERVAL_MS = 60000;
 const BALANCE_REFRESH_INTERVAL_MS = 30000;
 const BALANCE_RETRY_DELAY_MS = 900;
 const BALANCE_BACKGROUND_RETRY_MS = 6000;
@@ -3900,12 +3965,14 @@ let balanceBackgroundFailures = 0;
 let usageRequestId = 0;
 let usageAbortController = null;
 let usageUpdateInterval = null;
+let modelsUpdateInterval = null;
+let modelsRequestId = 0;
 
 // === I18N & DATA ===
 const i18n = {
   ru: {
     title: 'Prompt Port — проверка API-ключа', tagline: 'единая точка доступа к моделям',
-    auth_step: '01 / проверка доступа', connect_key: 'Один ключ.<br><em>Все модели.</em>',
+    connect_key: 'Один ключ.<br><em>Все модели.</em>',
     key_intro: 'Проверим ключ, покажем баланс и доступные модели. Ключ используется только в текущей вкладке и отправляется сервисам проверки и каталога.',
     api_key: 'API-ключ', continue: 'Проверить ключ', skip_key: 'Без ключа', skip_key_aria: 'Продолжить без API-ключа', key_security: 'Не сохраняется в браузере · очищается после обновления', buy_key: 'Приобрести ключ',
     showcase_kicker: 'Один ключ · все модели', showcase_title: 'Контролируйте доступ к <em>AI-моделям</em> в одном месте', showcase_copy: 'Проверка ключа, актуальный баланс, доступные модели и готовые инструкции для популярных AI-клиентов.',
@@ -3913,11 +3980,12 @@ const i18n = {
     os_step: '02 / рабочая система', choose_os: 'Где вы будете работать?', os_intro: 'Откроем нужный раздел сразу. Переключиться можно в любой момент.',
     nav_guides: 'Инструкции', nav_models: 'Модели', nav_usage: 'История', nav_buy: 'Приобрести', nav_faq: 'FAQ', route: 'Маршрут', route_primary: 'Основной', route_backup: 'Резервный',
     quick_start: 'Быстрый старт', client_setup: 'Настройка клиентов', client_intro: 'Выберите систему и приложение. Готовый ключ уже подставлен в команды.',
-    available_balance: 'Доступный баланс', tokens: 'токенов', clients: 'Клиенты', configs_ready: 'Конфигурации готовы', loading_guides: 'Читаем инструкции…',
+    available_balance: 'Доступный баланс', tokens: 'токенов', clients: 'Клиенты', loading_guides: 'Читаем инструкции…',
     catalog: 'Каталог', model_coefficients: 'Коэффициенты моделей', coefficients_intro: 'Актуальные коэффициенты списания для всех поддерживаемых моделей.',
-    model: 'Модель', provider: 'Провайдер', coefficient: 'Коэффициент', copied: 'Скопировано', search: 'Найти модель',
-    change_key: 'Изменить API-ключ', copy: 'Копировать', done: 'Готово', auto_install: 'Автоматическая установка',
+    model: 'Модель', provider: 'Провайдер', coefficient: 'Коэффициент', model_status: 'Статус', model_available: 'Работает', model_degraded: 'Нестабильно', model_unavailable: 'Недоступна', model_unknown: 'Не проверено', copied: 'Скопировано', search: 'Найти модель',
+    change_key: 'Изменить API-ключ', copy: 'Копировать', done: 'Готово', auto_install: 'Автоматическая установка', remove_key: 'Удаление ключа',
     auto_note: 'Скопируйте и выполните одну команду в терминале.', auto_note_windows: 'Скопируйте и выполните одну команду в powershell.',
+    remove_note: 'Закройте приложение и запустите команду. Она уберёт настройки подключения с этого устройства. Сам API-ключ останется активным — его можно будет подключить снова.',
     full_guide: 'Полное руководство', no_manual: 'Для этого клиента в исходном файле указан только автоматический способ установки.',
     no_models: 'Модели не найдены', configuration: 'Конфигурация', model_parameters: 'Параметры модели',
     balance_prompt: 'Введите API-ключ, чтобы получить актуальный баланс', balance_checking: 'Проверяем баланс…',
@@ -3925,17 +3993,17 @@ const i18n = {
     balance_timeout: 'Сервис временно не отвечает', balance_connect: 'Не удалось соединиться с сервером',
     balance_invalid_response: 'Сервер вернул некорректный ответ', balance_failed: 'Не удалось проверить баланс ключа. Проверьте интернет-соединение и правильность API-ключа.',
     show_key: 'Показать ключ', hide_key: 'Скрыть ключ', key_short: 'Проверьте ключ: он выглядит слишком коротким.', read_error: 'Не удалось прочитать встроенные инструкции.',
-    faq_title: 'Частые вопросы и ошибки', faq_intro: 'Решения самых распространённых проблем при работе с сервисом.',
-    faq_error1_title: 'Основной домен не открывается или запрос висит',
-    faq_error1_text: 'В начале Docs переключи домен с «Основной» на «Резервный», затем заново скопируй команду: все endpoint\'ы и скрипты ниже обновляются вместе с выбором. Полностью перезапусти клиент.',
-    faq_error2_title: 'После setup клиент просит войти или не видит CVC_API_KEY',
-    faq_error2_text: 'Сначала полностью закрой и заново открой клиент. Для VS Code Remote, SSH, Cursor Remote, VPS и server workspace запускай setup на удалённой машине, где работает extension host, а не на ноутбуке. Если VS Code Remote не перечитал окружение, выполни команду ниже на удалённой машине и переподключись.',
-    faq_error3_title: '401, Incorrect API key или запрос уходит на api.openai.com',
-    faq_error3_text: 'Клиент всё ещё обращается напрямую в OpenAI, поэтому ключ CheapVibeCode там не принимается. Запусти setup на машине, где реально работает клиент, и перезапусти его. Если 401 появился после переустановки, один раз выполни «Отключиться от проекта», затем снова запусти setup: это уберёт старый OpenAI auth/config.',
-    faq_error4_title: 'Модель не появилась или клиент пишет Model not found',
-    faq_error4_text: 'Сверь точный Model ID со списком моделей в Docs или ответом /v1/models и проверь, разрешена ли модель выбранному ключу. В Codex и ZCode используй обычный ID, в OpenCode и Kimi — cheapvibecode/<model>, в Cursor — <model>-cursor. После изменения модели или ключа перезапусти клиент. Отключённая модель временно скрывается из каталога.',
-    faq_error5_title: 'Что означают 429, 502/503/504, 524 и capacity_unavailable?',
-    faq_error5_text: '429 означает ограничение частоты: дождись Retry-After и уменьши число параллельных запросов. 502/503/capacity_unavailable означают временную недоступность upstream или свободных аккаунтов. При 524 сначала поменяй домен с «Основной» на второй — «Резервный» — в начале Docs, заново скопируй команду настройки и полностью перезапусти клиент. 504/upstream_timeout означает, что upstream не успел ответить: подожди, повтори с backoff один раз и при необходимости выбери другую доступную модель. Если ошибка повторяется, передай строку из логов поддержке.',
+    faq_title: 'Частые вопросы о работе с ИИ', faq_intro: 'Как выбрать модель, управлять контекстом и расходом токенов, а также справляться с ошибками генерации.',
+    faq_error1_title: 'Как выбрать подходящую модель?',
+    faq_error1_text: 'Для коротких ответов, перевода и простых правок выбирайте быструю модель. Для программирования, анализа документов и многоэтапных задач лучше подойдёт модель с усиленным рассуждением. Начинайте со сбалансированного варианта и переходите на более мощный только тогда, когда качества действительно не хватает.',
+    faq_error2_title: 'Почему ИИ забывает начало диалога или повторяется?',
+    faq_error2_text: 'У каждой модели ограничен объём контекста. В длинном диалоге ранние сообщения могут сокращаться или перестать учитываться. Начните новый чат и перенесите в него краткое резюме, важные требования и только нужные файлы. Это обычно повышает точность и уменьшает повторения.',
+    faq_error3_title: 'Из чего складывается расход токенов?',
+    faq_error3_text: 'Входные токены — это ваш запрос, история диалога и переданные файлы; выходные — ответ модели. Кэш показывает повторно использованный контекст, а режим рассуждения может увеличивать итоговый расход. Чтобы тратить меньше, сокращайте длинные диалоги и отправляйте только материалы, необходимые для текущей задачи.',
+    faq_error4_title: 'Почему ответ генерируется слишком долго?',
+    faq_error4_text: 'Скорость зависит от выбранной модели, длины контекста, уровня рассуждения и ожидаемого объёма ответа. Сократите запрос, уберите лишние файлы, уменьшите reasoning effort или включите Fast, если он доступен. Если задержка необычно большая, повторите запрос один раз либо выберите другую модель.',
+    faq_error5_title: 'Что делать, если запрос завершился ошибкой?',
+    faq_error5_text: 'При Model not found проверьте точное название модели в каталоге. Ошибка 429 означает слишком много запросов: немного подождите и уменьшите их параллельность. Ошибки 502, 503, 504 и capacity unavailable обычно временные — повторите запрос с паузой или переключитесь на другую модель. Не запускайте много повторов одновременно.',
     usage_kicker: 'Активность ключа', usage_title: 'История запросов', usage_intro: 'Последние запросы, использованные модели и фактическое списание токенов.',
     usage_not_loaded: 'История ещё не загружена', usage_refresh: 'Обновить', usage_refreshing: 'Обновляем историю…', usage_updated_at: 'Обновлено в',
     usage_shown: 'Показано запросов', usage_total: 'всего: {count}', usage_spent: 'Списано токенов', usage_visible_period: 'по показанной истории', usage_success_rate: 'Успешность', usage_status_caption: 'успешные запросы',
@@ -3945,7 +4013,7 @@ const i18n = {
   },
   en: {
     title: 'Prompt Port — API key check', tagline: 'one gateway to every model',
-    auth_step: '01 / access check', connect_key: 'One key.<br><em>Every model.</em>',
+    connect_key: 'One key.<br><em>Every model.</em>',
     key_intro: 'We will validate the key, retrieve its balance and list available models. It is used only in this tab and sent to the verification and catalog services.',
     api_key: 'API key', continue: 'Check key', skip_key: 'Without key', skip_key_aria: 'Continue without an API key', key_security: 'Not saved in the browser · cleared on refresh', buy_key: 'Purchase key',
     showcase_kicker: 'One key · every model', showcase_title: 'Control access to <em>AI models</em> in one place', showcase_copy: 'Key validation, current balance, available models and ready-to-use setup guides for popular AI clients.',
@@ -3953,11 +4021,12 @@ const i18n = {
     os_step: '02 / operating system', choose_os: 'Where will you work?', os_intro: 'We will open the relevant section first. You can switch at any time.',
     nav_guides: 'Guides', nav_models: 'Models', nav_usage: 'History', nav_buy: 'Purchase', nav_faq: 'FAQ', route: 'Route', route_primary: 'Primary', route_backup: 'Backup',
     quick_start: 'Quick start', client_setup: 'Client setup', client_intro: 'Choose an operating system and an app. Your key is already inserted into the commands.',
-    available_balance: 'Available balance', tokens: 'tokens', clients: 'Clients', configs_ready: 'Configurations ready', loading_guides: 'Loading guides…',
+    available_balance: 'Available balance', tokens: 'tokens', clients: 'Clients', loading_guides: 'Loading guides…',
     catalog: 'Catalog', model_coefficients: 'Model coefficients', coefficients_intro: 'Current usage coefficients for every supported model.',
-    model: 'Model', provider: 'Provider', coefficient: 'Coefficient', copied: 'Copied', search: 'Find a model',
-    change_key: 'Change API key', copy: 'Copy', done: 'Done', auto_install: 'Automatic installation',
+    model: 'Model', provider: 'Provider', coefficient: 'Coefficient', model_status: 'Status', model_available: 'Operational', model_degraded: 'Unstable', model_unavailable: 'Unavailable', model_unknown: 'Not checked', copied: 'Copied', search: 'Find a model',
+    change_key: 'Change API key', copy: 'Copy', done: 'Done', auto_install: 'Automatic installation', remove_key: 'Remove API key',
     auto_note: 'Copy and run this command in your terminal.', auto_note_windows: 'Copy and run this command in PowerShell.',
+    remove_note: 'Close the app and run the command. It removes the connection settings from this device. The API key stays active and can be connected again later.',
     full_guide: 'Full guide', no_manual: 'Only the automatic installation method is available for this client in the source file.',
     no_models: 'No models found', configuration: 'Configuration', model_parameters: 'Model parameters',
     balance_prompt: 'Enter an API key to retrieve the current balance', balance_checking: 'Checking balance…',
@@ -3965,6 +4034,17 @@ const i18n = {
     balance_timeout: 'The service is temporarily not responding', balance_connect: 'Could not connect to the server',
     balance_invalid_response: 'The server returned an invalid response', balance_failed: 'Could not verify the key balance. Check your connection and make sure the API key is correct.',
     show_key: 'Show key', hide_key: 'Hide key', key_short: 'Check the key: it looks too short.', read_error: 'Could not read the embedded guides.',
+    faq_title: 'Frequently asked questions about AI', faq_intro: 'How to choose a model, manage context and token usage, and deal with generation errors.',
+    faq_error1_title: 'How do I choose the right model?',
+    faq_error1_text: 'Choose a fast model for short answers, translation, and simple edits. A model with stronger reasoning is a better fit for programming, document analysis, and multi-step tasks. Start with a balanced option and move to a more powerful model only when you genuinely need better quality.',
+    faq_error2_title: 'Why does AI forget earlier messages or repeat itself?',
+    faq_error2_text: 'Every model has a limited context window. In a long conversation, early messages may be compressed or no longer considered. Start a new chat and carry over a short summary, the important requirements, and only the files you need. This usually improves accuracy and reduces repetition.',
+    faq_error3_title: 'What contributes to token usage?',
+    faq_error3_text: 'Input tokens include your prompt, conversation history, and attached files; output tokens make up the model response. Cache represents reused context, while reasoning can increase the final charge. To reduce usage, shorten long conversations and send only the material needed for the current task.',
+    faq_error4_title: 'Why is the response taking so long?',
+    faq_error4_text: 'Latency depends on the model, context length, reasoning effort, and expected response size. Shorten the prompt, remove unnecessary files, lower reasoning effort, or enable Fast when available. If the delay is unusually long, retry once or switch to another model.',
+    faq_error5_title: 'What should I do when a request fails?',
+    faq_error5_text: 'For Model not found, check the exact model name in the catalog. A 429 error means too many requests: wait briefly and reduce concurrency. Errors 502, 503, 504, and capacity unavailable are usually temporary; retry after a pause or switch to another model. Do not launch many retries at once.',
     usage_kicker: 'Key activity', usage_title: 'Request history', usage_intro: 'Recent requests, models used, and actual token charges.',
     usage_not_loaded: 'History has not been loaded yet', usage_refresh: 'Refresh', usage_refreshing: 'Refreshing history…', usage_updated_at: 'Updated at',
     usage_shown: 'Requests shown', usage_total: 'total: {count}', usage_spent: 'Tokens charged', usage_visible_period: 'across the visible history', usage_success_rate: 'Success rate', usage_status_caption: 'successful requests',
@@ -3975,8 +4055,8 @@ const i18n = {
 };
 
 const appMeta = {
-  'claude-code': { title: 'Claude Code (CLI & VSC)', glyph: 'CL', claude: true },
-  'claude-app': { title: 'Claude App', glyph: 'CA', claude: true },
+  'claude-code': { title: 'Claude Code (CLI & VSC)', glyph: 'CL', claude: true, emphasis: 'Code' },
+  'claude-app': { title: 'Claude App', glyph: 'CA', claude: true, emphasis: 'App' },
   'hermes': { title: 'Hermes Desktop', glyph: 'HE' },
   'grok': { title: 'Grok Build', glyph: 'GR' },
   'opencode': { title: 'OpenCode', glyph: 'OC' },
@@ -3986,89 +4066,170 @@ const appMeta = {
   'codex-cli': { title: 'Codex CLI', glyph: '>_' }
 };
 
-let models = [
-  ['gpt-5.6-sol', 'OpenAI', '2.5'], ['gpt-5.5', 'OpenAI', '2.5'],
-  ['gpt-5.6-terra', 'OpenAI', '1.2'], ['gpt-5.4', 'OpenAI', '1.5'],
-  ['gpt-5.6-luna', 'OpenAI', '0.33'], ['gpt-5.4-mini', 'OpenAI', '0.8'],
-  ['claude-fable-5', 'Anthropic', '8'], ['claude-opus-5', 'Anthropic', '4'],
+// Every entry is explicitly keyed by both OS and client to prevent commands
+// from leaking across platforms. Public remover scripts come from the client
+// setup documentation; Codex uses local credential cleanup because no public
+// remover endpoint is published for its variants.
+const codexRemovalCommands = {
+  windows: `[Environment]::SetEnvironmentVariable('CVC_API_KEY',$null,'User'); [Environment]::SetEnvironmentVariable('OPENAI_API_KEY',$null,'User'); Remove-Item Env:CVC_API_KEY,Env:OPENAI_API_KEY -ErrorAction SilentlyContinue; $d=Join-Path ([Environment]::GetFolderPath('UserProfile')) '.codex'; $a=Join-Path $d 'auth.json'; if(Test-Path $a){$j=Get-Content $a -Raw|ConvertFrom-Json; $j.PSObject.Properties.Remove('OPENAI_API_KEY'); $j.PSObject.Properties.Remove('CVC_API_KEY'); $j|ConvertTo-Json -Depth 20|Set-Content $a -Encoding utf8}; @('.env','cheapvibecode.env')|ForEach-Object{$p=Join-Path $d $_; if(Test-Path $p){(Get-Content $p)|Where-Object{$_ -notmatch '^(CVC_API_KEY|OPENAI_API_KEY)='}|Set-Content $p -Encoding utf8}}`,
+  mac: `python3 -c 'import json,pathlib; p=pathlib.Path.home()/".codex"/"auth.json"; d=json.loads(p.read_text()) if p.exists() else {}; d.pop("OPENAI_API_KEY",None); d.pop("CVC_API_KEY",None); p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\\n") if p.exists() else None'; sed -E -i '' '/^export (CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.zshrc" "$HOME/.bashrc" 2>/dev/null; sed -E -i '' '/^(CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.codex/.env" "$HOME/.codex/cheapvibecode.env" 2>/dev/null; unset CVC_API_KEY OPENAI_API_KEY`,
+  linux: `python3 -c 'import json,pathlib; p=pathlib.Path.home()/".codex"/"auth.json"; d=json.loads(p.read_text()) if p.exists() else {}; d.pop("OPENAI_API_KEY",None); d.pop("CVC_API_KEY",None); p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\\n") if p.exists() else None'; sed -E -i '/^export (CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.zshrc" "$HOME/.bashrc" 2>/dev/null; sed -E -i '/^(CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.codex/.env" "$HOME/.codex/cheapvibecode.env" 2>/dev/null; unset CVC_API_KEY OPENAI_API_KEY`
+};
+
+const removalCommands = {
+  windows: {
+    'claude-code': `iex(irm 'https://ru.cheapvibecode.ru/crw')`,
+    'claude-app': `iex(irm 'https://ru.cheapvibecode.ru/rclaudew')`,
+    'hermes': `iex(irm 'https://ru.cheapvibecode.ru/rhermesw')`,
+    'grok': `iex(irm 'https://ru.cheapvibecode.ru/rgw')`,
+    'opencode': `iex(irm 'https://ru.cheapvibecode.ru/row')`,
+    'cursor': `iex(irm 'https://ru.cheapvibecode.ru/rcrw')`,
+    'codex-vscode': codexRemovalCommands.windows,
+    'codex-app': codexRemovalCommands.windows,
+    'codex-cli': codexRemovalCommands.windows
+  },
+  mac: {
+    'claude-code': `bash <(curl -fsSL https://ru.cheapvibecode.ru/crm)`,
+    'claude-app': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rclaudem)`,
+    'hermes': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rhermesm)`,
+    'grok': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rgm)`,
+    'opencode': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rom)`,
+    'cursor': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rcrm)`,
+    'codex-vscode': codexRemovalCommands.mac,
+    'codex-cli': codexRemovalCommands.mac,
+    'codex-app': codexRemovalCommands.mac
+  },
+  linux: {
+    'claude-code': `bash <(curl -fsSL https://ru.cheapvibecode.ru/crl)`,
+    'hermes': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rhermesl)`,
+    'grok': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rgl)`,
+    'opencode': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rol)`,
+    'cursor': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rcrl)`,
+    'codex-vscode': codexRemovalCommands.linux,
+    'codex-cli': codexRemovalCommands.linux
+  }
+};
+
+const modelCatalog = [
+  ['gpt-5.6-sol', 'OpenAI', '2.5'], ['gpt-5.6-terra', 'OpenAI', '1.2'],
+  ['gpt-5.6-luna', 'OpenAI', '0.33'], ['gpt-5.5', 'OpenAI', '2.5'],
+  ['gpt-5.4', 'OpenAI', '1.5'], ['gpt-5.4-mini', 'OpenAI', '0.8'],
+  ['claude-opus-5', 'Anthropic', '4'], ['claude-fable-5', 'Anthropic', '8'],
   ['claude-opus-4-8', 'Anthropic', '4'], ['claude-opus-4-7', 'Anthropic', '4'],
-  ['claude-opus-4-6', 'Anthropic', '4'], ['claude-sonnet-5', 'Anthropic', '2'],
-  ['claude-sonnet-4-6', 'Anthropic', '2'], ['claude-haiku-4-5', 'Anthropic', '0.9'],
+  ['claude-sonnet-5', 'Anthropic', '2'], ['claude-sonnet-4-6', 'Anthropic', '2'],
+  ['claude-opus-4-6', 'Anthropic', '4'], ['claude-haiku-4-5', 'Anthropic', '0.9'],
   ['gemini-3.7-flash', 'Google', '1'], ['gemini-3.5-flash', 'Google', '1'],
   ['gemini-3.6-flash', 'Google', '1'], ['gemini-3.1-pro', 'Google', '2'],
-  ['grok-4.6', 'xAI', '0.5'], ['grok-4.5', 'xAI', '0.8'],
-  ['kimi-k3', 'Moonshot', '5.5'], ['qwen3.8-max', 'Alibaba', '0.3'],
-  ['glm-5.3', 'Z AI', '1.9'], ['deepseek-v4-pro', 'DeepSeek', '0.6'],
-  ['deepseek-v4-flash-vision-exp', 'DeepSeek', '0.25'], ['deepseek-v4-flash', 'DeepSeek', '0.1'],
-  ['glm-5.2', 'Z AI', '1.9'], ['qwen3.7-max', 'Alibaba', '0.2'],
+  ['grok-4.6', 'xAI', '0.8'], ['grok-4.5', 'xAI', '0.8'],
+  ['composer-2.5-fast', 'xAI', '0.5'],
+  ['kimi-k3', 'Moonshot', '5.5'], ['qwen3.8-max', 'Alibaba', '0.05'],
+  ['glm-5.3', 'Z AI', '1.9'], ['glm-5.3-flash', 'Z AI', '0.5'],
+  ['deepseek-v4-pro', 'DeepSeek', '0.6'], ['deepseek-v4-flash', 'DeepSeek', '0.1'],
+  ['glm-5.2', 'Z AI', '1.9'], ['qwen3.7-max', 'Alibaba', '0.05'],
   ['minimax-m3', 'MiniMax', '0.45'], ['kimi-k2.7-code', 'Moonshot', '1.5'],
-  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['qwen3.7-plus', 'Alibaba', '0.1'],
-  ['glm-5-turbo', 'Z AI', '1.38'], ['mimo-v2.5', 'Xiaomi', '0.05'],
-  ['muse-spark-1.2', 'Baidu', '0.05'], ['ox-alpha', 'ByteDance', '0.001'],
-  ['nemotron-3-ultra', 'NVIDIA', '0.05'], ['nemotron-3.5-lightning', 'NVIDIA', '0.05']
+  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['qwen3.7-plus', 'Alibaba', '0.05'],
+  ['glm-5-turbo', 'Z AI', '1.38']
 ];
+let models = modelCatalog.map(model => [...model]);
 
-// Автоматическая загрузка моделей с API
-async function loadModelsFromAPI() {
+function normalizeModelStatus(model) {
+  const booleanFields = [model.available, model.is_available, model.enabled, model.is_enabled, model.operational];
+  const explicitBoolean = booleanFields.find(value => typeof value === 'boolean');
+  if (explicitBoolean === false) return 'unavailable';
+
+  const rawStatus = model.status ?? model.availability ?? model.health?.status ?? model.health ?? model.state;
+  if (typeof rawStatus === 'boolean') return rawStatus ? 'available' : 'unavailable';
+  if (typeof rawStatus === 'string') {
+    const value = rawStatus.trim().toLowerCase();
+    if (/unavailable|offline|disabled|inactive|down|failed|error|outage|maintenance/.test(value)) return 'unavailable';
+    if (/degraded|unstable|limited|partial|slow|warning/.test(value)) return 'degraded';
+    if (/available|online|enabled|active|operational|healthy|working|ready|success|^ok$|^up$/.test(value)) return 'available';
+  }
+
+  // The API contract defines /v1/models as the list currently available to
+  // this exact key. If it supplies no separate health field, its presence in
+  // the live response is still a confirmed availability signal.
+  return 'available';
+}
+
+// Автоматическая загрузка моделей и их статусов с API
+async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
   // Endpoint требует авторизацию: грузим модели только когда посетитель ввёл ключ.
-  if (!state.apiKey || !state.apiKey.trim()) return;
+  if (!state.apiKey || !state.apiKey.trim()) return false;
+  const requestId = ++modelsRequestId;
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), MODELS_TIMEOUT_MS);
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const response = await fetch('https://ru.cheapvibecode.ru/v1/models', {
-      method: 'GET',
-      headers: {
-        'Accept': 'application/json',
-        'Authorization': 'Bearer ' + state.apiKey.trim()
-      },
-      signal: controller.signal
-    });
-
-    if (!response.ok) throw new Error(`HTTP ${response.status}`);
-
-    const data = await response.json();
+    let data;
+    try {
+      // Works when Prompt Port is hosted on an origin allowed by CheapVibeCode.
+      const directResponse = await fetch('https://ru.cheapvibecode.ru/v1/models', {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Authorization': 'Bearer ' + state.apiKey.trim()
+        },
+        signal: controller.signal
+      });
+      if (!directResponse.ok) throw new Error(`HTTP ${directResponse.status}`);
+      data = await directResponse.json();
+    } catch (directError) {
+      if (controller.signal.aborted) throw directError;
+      // Local file:// pages cannot read the direct response because of CORS.
+      // The same trusted worker already used for balance proxies only /v1/models.
+      const proxyResponse = await fetch(MODELS_PROXY_ENDPOINT, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ action: 'models', api_key: state.apiKey.trim() }),
+        signal: controller.signal
+      });
+      const proxyData = await proxyResponse.json();
+      if (!proxyResponse.ok || proxyData.success === false) throw new Error(proxyData.message || `HTTP ${proxyResponse.status}`);
+      data = proxyData.models ? { data: proxyData.models } : proxyData;
+    }
 
     if (data && data.data && Array.isArray(data.data)) {
-      const knownCoefficients = new Map(models.map(([name, , coefficient]) => [name, coefficient]));
-      const loadedModels = data.data.map(model => {
-        const modelId = model.id || '';
-        const ownedBy = model.owned_by || 'Unknown';
-
-        // Определяем провайдера по owned_by или id
-        let provider = 'Unknown';
-        if (ownedBy.toLowerCase().includes('openai') || modelId.startsWith('gpt')) provider = 'OpenAI';
-        else if (ownedBy.toLowerCase().includes('anthropic') || modelId.startsWith('claude')) provider = 'Anthropic';
-        else if (ownedBy.toLowerCase().includes('google') || modelId.startsWith('gemini')) provider = 'Google';
-        else if (ownedBy.toLowerCase().includes('xai') || modelId.startsWith('grok')) provider = 'xAI';
-        else if (modelId.startsWith('glm')) provider = 'Z AI';
-        else if (modelId.startsWith('minimax')) provider = 'MiniMax';
-        else if (modelId.startsWith('deepseek')) provider = 'DeepSeek';
-        else if (modelId.startsWith('mimo')) provider = 'Xiaomi';
-        else if (modelId.startsWith('nemotron')) provider = 'NVIDIA';
-        else if (modelId.startsWith('composer')) provider = 'XAI';
-        else if (modelId.startsWith('north')) provider = 'Cohere';
-        else provider = ownedBy;
-
-        // Не выдаём расчётную цену за коэффициент: берём явное поле API
-        // или проверенное значение из встроенного каталога.
-        const rawCoefficient = model.coefficient ?? model.multiplier ?? knownCoefficients.get(modelId);
-        const coefficient = rawCoefficient == null ? '—' : String(rawCoefficient);
-
-        return [modelId, provider, coefficient];
+      const liveModels = new Map(data.data
+        .filter(model => model && model.id)
+        .map(model => [String(model.id).toLowerCase(), model]));
+      const loadedModels = modelCatalog.map(([modelId, provider, coefficient]) => {
+        const liveModel = liveModels.get(modelId.toLowerCase());
+        return [modelId, provider, coefficient, liveModel ? normalizeModelStatus(liveModel) : 'unavailable'];
       });
 
-      if (loadedModels.length > 0) {
+      if (requestId === modelsRequestId && loadedModels.length > 0) {
         models = loadedModels;
+        state.modelsUpdatedAt = Date.now();
         console.log(`✓ Загружено ${models.length} моделей с API`);
-        renderModels('');
+        renderModels($('#modelSearch')?.value || '');
         const modelCount = $('#modelCount');
         if (modelCount) modelCount.textContent = String(models.length);
+        return true;
       }
     }
   } catch (error) {
     console.warn('Не удалось загрузить модели с API, используются статические данные:', error.message);
   } finally {
     clearTimeout(timeoutId);
+  }
+  return false;
+}
+
+function startModelsAutoUpdate() {
+  stopModelsAutoUpdate(false);
+  modelsUpdateInterval = setInterval(() => {
+    if (state.apiKey && document.visibilityState === 'visible' && navigator.onLine) loadModelsFromAPI();
+  }, MODELS_REFRESH_INTERVAL_MS);
+}
+
+function stopModelsAutoUpdate(resetStatus = true) {
+  if (modelsUpdateInterval) clearInterval(modelsUpdateInterval);
+  modelsUpdateInterval = null;
+  modelsRequestId += 1;
+  if (resetStatus) {
+    models = models.map(([name, provider, coefficient]) => [name, provider, coefficient, 'unknown']);
+    state.modelsUpdatedAt = null;
+    renderModels($('#modelSearch')?.value || '');
   }
 }
 
@@ -4647,7 +4808,7 @@ function renderClients() {
   $('#clientList').innerHTML = items.map(item => {
     const meta = appMeta[item.id] || { title: item.id, glyph: '•' };
     return `<button class="client-button ${item.id === state.activeApp ? 'is-active' : ''}" data-app="${item.id}">
-      <span class="client-icon">${meta.glyph}</span><span>${meta.title}</span>
+      <span class="client-icon">${meta.glyph}</span><span class="client-title">${appTitleMarkup(meta)}</span>
     </button>`;
   }).join('');
   $$('#osTabs button').forEach(button => {
@@ -4656,6 +4817,13 @@ function renderClients() {
     button.setAttribute('aria-selected', String(active));
   });
   renderGuide();
+}
+
+function appTitleMarkup(meta) {
+  const title = escapeHtml(meta.title || '');
+  if (!meta.emphasis) return title;
+  const emphasis = escapeHtml(meta.emphasis);
+  return title.replace(emphasis, `<span class="claude-kind">${emphasis}</span>`);
 }
 
 function renderGuide() {
@@ -4733,13 +4901,14 @@ function renderGuide() {
 
   const meta = appMeta[item.id] || { title: item.id, glyph: '•' };
   const auto = item.automatic ? runtimeText(item.automatic, item.id) : '';
+  const removal = removalCommands[state.os]?.[item.id] || '';
   const manual = runtimeText(item.manual, item.id);
   const blocks = guideBlocks(manual);
   const index = items.indexOf(item) + 1;
 
   panel.innerHTML = `
     <header class="guide-header">
-      <div class="guide-heading"><span class="client-icon">${meta.glyph}</span><div><h2>${meta.title}</h2><p>${state.os === 'mac' ? 'macOS' : state.os}</p></div></div>
+      <div class="guide-heading"><span class="client-icon">${meta.glyph}</span><div><h2>${appTitleMarkup(meta)}</h2><p>${state.os === 'mac' ? 'macOS' : state.os}</p></div></div>
       <span class="guide-index">${String(index).padStart(2, '0')} / ${String(items.length).padStart(2, '0')}</span>
     </header>
     ${auto ? `<section class="quick-install"><div class="section-label">${t('auto_install')}</div><p class="quick-note">${t(state.os === 'windows' ? 'auto_note_windows' : 'auto_note')}</p>${codeWindow(auto, state.os === 'windows' ? 'PowerShell' : 'Terminal')}</section>` : ''}
@@ -4749,19 +4918,45 @@ function renderGuide() {
         : codeWindow(block.value, titleForCode(block.value, block.context))).join('')
         : `<div class="empty-guide">${t('no_manual')}</div>`}
       </div>
-    </section>`;
+    </section>
+    ${removal ? `<section class="quick-remove"><div class="section-label">${t('remove_key')}</div><p class="quick-note">${t('remove_note')}</p>${codeWindow(removal, state.os === 'windows' ? 'PowerShell' : 'Terminal')}</section>` : ''}`;
 
   bindCopyButtons();
 }
 
+function formatModelName(modelId) {
+  return modelId
+    .replace(/^gpt-/, 'GPT ')
+    .replace(/^claude-/, 'Claude ')
+    .replace(/^gemini-/, 'Gemini ')
+    .replace(/^grok-/, 'Grok ')
+    .replace(/^composer-/, 'Composer ')
+    .replace(/^kimi-/, 'Kimi ')
+    .replace(/^qwen/, 'Qwen')
+    .replace(/^glm-/, 'GLM ')
+    .replace(/^deepseek-/, 'DeepSeek ')
+    .replace(/^minimax-/, 'MiniMax ')
+    .replace(/^mimo-/, 'MiMo ')
+    .replace(/\b(opus|sonnet|haiku)-(\d+)-(\d+)\b/g, '$1 $2.$3')
+    .replace(/-/g, ' ')
+    .replace(/\b(sol|terra|luna|mini|opus|fable|sonnet|haiku|flash|pro|fast|max|code|plus|turbo)\b/g, word => word[0].toUpperCase() + word.slice(1))
+    .replace(/\b([kvm])(?=\d)/g, letter => letter.toUpperCase());
+}
+
 function renderModels(query = '') {
-  const filtered = models.filter(([name, provider]) => `${name} ${provider}`.toLowerCase().includes(query.toLowerCase()));
-  $('#modelList').innerHTML = filtered.length ? filtered.map(([name, provider, coefficient]) => `
+  const filtered = models.filter(([name, provider, , status = 'unknown']) => `${name} ${formatModelName(name)} ${provider} ${t(`model_${status}`)}`.toLowerCase().includes(query.toLowerCase()));
+  $('#modelList').innerHTML = filtered.length ? filtered.map(([name, provider, coefficient, status = 'unknown']) => {
+    const safeStatus = ['available', 'degraded', 'unavailable', 'unknown'].includes(status) ? status : 'unknown';
+    const displayCoefficient = String(coefficient);
+    const displayName = formatModelName(name);
+    return `
     <div class="model-row">
-      <div class="model-name"><span class="model-glyph">${name.slice(0, 2).toUpperCase()}</span><span>${name}</span></div>
-      <span class="provider">${provider}</span>
-      <span class="coefficient"><b>${coefficient === '—' ? '—' : `x${state.language === 'ru' ? coefficient.replace('.', ',') : coefficient}`}</b></span>
-    </div>`).join('') : `<div class="no-models">${t('no_models')}</div>`;
+      <div class="model-name"><span class="model-glyph">${escapeHtml(displayName.slice(0, 2).toUpperCase())}</span><span>${escapeHtml(displayName)}</span></div>
+      <span class="provider">${escapeHtml(provider)}</span>
+      <span class="model-health is-${safeStatus}">${escapeHtml(t(`model_${safeStatus}`))}</span>
+      <span class="coefficient"><b>${displayCoefficient === '—' ? '—' : `x${escapeHtml(state.language === 'ru' ? displayCoefficient.replace('.', ',') : displayCoefficient)}`}</b></span>
+    </div>`;
+  }).join('') : `<div class="no-models">${t('no_models')}</div>`;
 }
 
 function setView(view) {
@@ -4772,6 +4967,10 @@ function setView(view) {
     const age = Date.now() - (state.usage.updatedAt || 0);
     if (state.usage.status === 'idle') refreshUsage();
     else if (state.usage.status !== 'loading' && age >= USAGE_REFRESH_INTERVAL_MS) refreshUsage(true);
+  }
+  if (view === 'models' && state.apiKey) {
+    const age = Date.now() - (state.modelsUpdatedAt || 0);
+    if (age >= MODELS_REFRESH_INTERVAL_MS) loadModelsFromAPI();
   }
 }
 
@@ -4887,8 +5086,13 @@ async function init() {
     const submitLabel = $('span', submitButton);
     submitButton.disabled = true;
     submitLabel.textContent = t('key_checking');
-    const isValid = await refreshBalance();
+    // Fetch the key balance and live model availability together so the
+    // catalog is already populated when the application becomes visible.
+    const balancePromise = refreshBalance();
+    const modelsPromise = loadModelsFromAPI({ timeoutMs: MODELS_INITIAL_TIMEOUT_MS });
+    const isValid = await balancePromise;
     if (!isValid) {
+      modelsRequestId += 1;
       $('#keyError').textContent = t('key_check_failed');
       $('.key-control').classList.add('is-error');
       state.apiKey = '';
@@ -4896,14 +5100,14 @@ async function init() {
       submitLabel.textContent = t('continue');
       return;
     }
+    await modelsPromise;
     submitButton.disabled = false;
     submitLabel.textContent = t('continue');
     enterApp(state.os || 'windows');
     startBalanceAutoUpdate();
     refreshUsage();
     startUsageAutoUpdate();
-    // The catalog updates in the background and never blocks entry to the app.
-    loadModelsFromAPI();
+    startModelsAutoUpdate();
   });
 
   $('#apiKey').addEventListener('input', () => {
@@ -4915,6 +5119,7 @@ async function init() {
   $('#skipKey').addEventListener('click', () => {
     stopBalanceAutoUpdate();
     stopUsageAutoUpdate();
+    stopModelsAutoUpdate();
     balanceRequestId += 1;
     state.apiKey = '';
     safeStorage.removeItem('cerberus_api_key');
@@ -4943,6 +5148,7 @@ async function init() {
     $('#apiKey').focus();
     stopBalanceAutoUpdate();
     stopUsageAutoUpdate();
+    stopModelsAutoUpdate();
   });
 
   $('#clientList').addEventListener('click', event => {
@@ -4969,6 +5175,7 @@ async function init() {
   $('#keyButton').addEventListener('click', () => {
     stopBalanceAutoUpdate();
     stopUsageAutoUpdate();
+    stopModelsAutoUpdate(false);
     $('#appShell').classList.remove('is-ready');
     $('#appShell').setAttribute('aria-hidden', 'true');
     $('#entry').classList.remove('is-done');
@@ -4985,10 +5192,13 @@ async function init() {
     const usageAge = Date.now() - (state.usage.updatedAt || 0);
     if (balanceAge >= BALANCE_REFRESH_INTERVAL_MS) refreshBalance(true, true);
     if (usageAge >= USAGE_REFRESH_INTERVAL_MS) refreshUsage(true);
+    const modelsAge = Date.now() - (state.modelsUpdatedAt || 0);
+    if (modelsAge >= MODELS_REFRESH_INTERVAL_MS) loadModelsFromAPI();
   });
   window.addEventListener('online', () => {
     if (state.apiKey && state.balance.status === 'success') refreshBalance(true, true);
     if (state.apiKey) refreshUsage(true);
+    if (state.apiKey) loadModelsFromAPI();
   });
 
   // Загружаем модели с API при инициализации
