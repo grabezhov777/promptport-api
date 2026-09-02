@@ -2080,7 +2080,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   height:calc(100dvh - 130px);
   min-height:610px;
   display:grid;
-  grid-template-columns:252px minmax(0,1fr);
+  grid-template-columns:minmax(0,1fr);
   overflow:hidden;
   border-radius:30px;
   background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.028));
@@ -2088,34 +2088,23 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   backdrop-filter:blur(28px);
   -webkit-backdrop-filter:blur(28px);
 }
-.chat-sidebar { min-width:0; padding:16px; display:flex; flex-direction:column; background:rgba(0,0,0,.16); box-shadow:inset -1px 0 0 rgba(255,255,255,.065); }
-.chat-new,.chat-clear,.chat-tool,.chat-send {
+.chat-clear,.chat-tool,.chat-send {
   border:0;
   color:#e8f8ee;
   cursor:pointer;
   transition:transform .2s,background .2s,opacity .2s,box-shadow .2s;
 }
-.chat-new { min-height:48px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; border-radius:15px; background:rgba(79,185,117,.14); box-shadow:inset 0 1px 1px rgba(220,255,232,.14); font:500 11px/1 var(--sans); }
-.chat-new:hover { transform:translateY(-1px); background:rgba(79,185,117,.22); }
-.chat-new b { font:300 22px/1 var(--sans); }
-.chat-history-label { margin:24px 8px 10px; color:rgba(190,239,208,.48); font:8px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; }
-.chat-history { min-height:0; flex:1; overflow:auto; display:flex; flex-direction:column; gap:5px; scrollbar-width:thin; }
-.chat-history-item { width:100%; min-height:48px; border:0; padding:9px 11px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; border-radius:13px; background:transparent; color:rgba(255,255,255,.58); cursor:pointer; text-align:left; }
-.chat-history-item:hover { background:rgba(255,255,255,.045); color:rgba(255,255,255,.84); }
-.chat-history-item.is-active { background:rgba(79,185,117,.11); color:#e1f6e8; box-shadow:inset 2px 0 0 rgba(143,211,169,.8); }
-.chat-history-item span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
-.chat-history-item small { color:rgba(255,255,255,.32); font:8px/1 var(--mono); }
-.chat-privacy { margin:14px 5px 2px; display:flex; gap:8px; color:rgba(255,255,255,.35); font:8px/1.45 var(--mono); }
-.chat-privacy i { width:7px; height:7px; margin-top:2px; flex:0 0 7px; border-radius:50%; background:#8fd3a9; box-shadow:0 0 10px rgba(79,185,117,.5); }
 .chat-main { min-width:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; }
 .chat-topbar { min-height:76px; padding:12px 18px; display:flex; align-items:center; gap:10px; box-shadow:inset 0 -1px 0 rgba(255,255,255,.07); }
 .chat-select-wrap { min-width:0; position:relative; }
 .chat-select-wrap:first-child { flex:1; max-width:360px; }
+.chat-saved-note { margin-left:auto; display:flex; align-items:center; gap:7px; color:rgba(190,239,208,.48); font:8px/1.35 var(--mono); white-space:nowrap; }
+.chat-saved-note i { width:6px; height:6px; border-radius:50%; background:#8fd3a9; box-shadow:0 0 9px rgba(79,185,117,.55); }
 .chat-select-wrap label { display:block; margin:0 0 6px 4px; color:rgba(255,255,255,.36); font:7px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; }
 .chat-select { width:100%; height:37px; border:0; padding:0 34px 0 12px; border-radius:11px; outline:none; appearance:none; background:rgba(255,255,255,.065); color:rgba(255,255,255,.9); box-shadow:inset 0 1px 1px rgba(255,255,255,.11); font:500 10px/1 var(--sans); cursor:pointer; }
 .chat-select option { color:#efefef; background:#111; }
 .chat-select-wrap::after { content:'⌄'; position:absolute; right:12px; bottom:11px; color:rgba(190,239,208,.65); pointer-events:none; font-size:11px; }
-.chat-clear { width:37px; height:37px; margin:17px 0 0 auto; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.055); color:rgba(255,255,255,.48); }
+.chat-clear { width:37px; height:37px; margin:17px 0 0; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.055); color:rgba(255,255,255,.48); }
 .chat-clear:hover { color:#ff9ca2; background:rgba(255,82,92,.1); }
 .chat-clear svg,.chat-tool svg,.chat-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
 .chat-messages { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:26px clamp(18px,4vw,64px); scrollbar-width:thin; }
@@ -2262,9 +2251,9 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .view { padding-bottom:35px; }
   .chat-view { width:calc(100% - 20px); padding-top:82px; }
   .chat-layout { height:calc(100dvh - 182px); min-height:520px; grid-template-columns:1fr; border-radius:22px; }
-  .chat-sidebar { display:none; }
   .chat-topbar { min-height:70px; padding:10px 11px; }
   .chat-select-wrap:first-child { max-width:none; }
+  .chat-saved-note span { display:none; }
   .chat-messages { padding:20px 14px; }
   .chat-composer-area { padding:9px 9px 12px; }
   .workspace,.client-sidebar,.client-list,.guide-panel {
@@ -2581,13 +2570,6 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 
     <section class="view chat-view" id="chatView">
       <div class="chat-layout">
-        <aside class="chat-sidebar">
-          <button class="chat-new" id="chatNew" type="button"><span data-i18n="chat_new">Новый чат</span><b>+</b></button>
-          <span class="chat-history-label" data-i18n="chat_history">Диалоги в этой вкладке</span>
-          <div class="chat-history" id="chatHistory"></div>
-          <p class="chat-privacy"><i></i><span data-i18n="chat_privacy">Ключ и вложения не сохраняются после закрытия вкладки</span></p>
-        </aside>
-
         <div class="chat-main">
           <header class="chat-topbar">
             <div class="chat-select-wrap">
@@ -2604,6 +2586,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
                 <option value="max">Max</option>
               </select>
             </div>
+            <span class="chat-saved-note"><i></i><span data-i18n="chat_saved">История сохраняется для этого ключа</span></span>
             <button class="chat-clear" id="chatClear" type="button" data-i18n-title="chat_clear" title="Очистить чат" aria-label="Очистить чат">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6"/></svg>
             </button>
@@ -4120,12 +4103,6 @@ const safeStorage = {
   setItem: (key, value) => { try { localStorage.setItem(key, value); } catch {} },
   removeItem: key => { try { localStorage.removeItem(key); } catch {} }
 };
-const safeSession = {
-  getItem: key => { try { return sessionStorage.getItem(key); } catch { return null; } },
-  setItem: (key, value) => { try { sessionStorage.setItem(key, value); } catch {} },
-  removeItem: key => { try { sessionStorage.removeItem(key); } catch {} }
-};
-
 const state = {
   language: safeStorage.getItem('cerberus_language') || 'ru',
   apiKey: '',
@@ -4136,7 +4113,7 @@ const state = {
   balance: { status: 'idle', value: null, errorKey: '', serverMessage: '', updatedAt: null, refreshing: false },
   usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' },
   modelsUpdatedAt: null,
-  chat: { conversations: [], activeId: null, attachments: [], generating: false, controller: null }
+  chat: { conversation: null, storageKey: '', attachments: [], generating: false, controller: null, error: '' }
 };
 safeStorage.removeItem('cerberus_api_key');
 const BALANCE_API_ENDPOINT = 'https://api-token.alexgamer7307.workers.dev?v=3';
@@ -4180,7 +4157,7 @@ const i18n = {
     available_balance: 'Доступный баланс', tokens: 'токенов', clients: 'Клиенты', loading_guides: 'Читаем инструкции…',
     catalog: 'Каталог', model_coefficients: 'Коэффициенты моделей', coefficients_intro: 'Актуальные коэффициенты списания для всех поддерживаемых моделей.',
     model: 'Модель', provider: 'Провайдер', coefficient: 'Коэффициент', model_status: 'Статус', model_available: 'Работает', model_degraded: 'Нестабильно', model_unavailable: 'Недоступна', model_unknown: 'Не проверено', copied: 'Скопировано', search: 'Найти модель',
-    chat_new: 'Новый чат', chat_history: 'Диалоги в этой вкладке', chat_privacy: 'Ключ и вложения не сохраняются после закрытия вкладки', chat_model: 'Модель', chat_effort: 'Effort', chat_effort_auto: 'Авто', chat_clear: 'Очистить чат', chat_attach: 'Добавить фото или файл', chat_send: 'Отправить', chat_stop: 'Остановить', chat_placeholder: 'Напишите сообщение…', chat_note: 'Enter — отправить · Shift+Enter — новая строка · до 4 файлов', chat_empty_title: 'Чем займёмся?', chat_empty_text: 'Выберите модель, задайте уровень рассуждения и отправьте сообщение. Можно приложить изображение, PDF, текст или код.', chat_untitled: 'Новый диалог', chat_you: 'Вы', chat_assistant: 'ИИ', chat_tokens_used: 'токенов', chat_no_key: 'Сначала введите и проверьте API-ключ.', chat_empty_message: 'Напишите сообщение или добавьте файл.', chat_file_limit: 'Можно прикрепить не больше 4 файлов.', chat_image_large: 'Изображение слишком большое. Максимум — 3 МБ.', chat_file_large: 'Файл слишком большой. Максимум — 1 МБ.', chat_file_unsupported: 'Этот формат файла пока не поддерживается.', chat_pdf_unavailable: 'Не удалось прочитать PDF. Попробуйте TXT или Markdown.', chat_file_read_error: 'Не удалось прочитать файл.', chat_vision_hint: 'Если модель не поддерживает изображения, выберите vision-модель.', chat_error_generic: 'Не удалось получить ответ. Проверьте соединение или выберите другую модель.', chat_error_401: 'API-ключ отклонён. Проверьте ключ и попробуйте снова.', chat_error_402: 'На ключе недостаточно токенов для этого запроса.', chat_error_429: 'Слишком много запросов. Немного подождите и повторите.', chat_error_503: 'Модель временно перегружена. Повторите позже или выберите другую.', chat_stopped: 'Генерация остановлена', chat_clear_confirm: 'Очистить текущий диалог?', chat_attach_count: '{count} влож.',
+    chat_saved: 'История сохраняется для этого ключа', chat_model: 'Модель', chat_effort: 'Effort', chat_effort_auto: 'Авто', chat_clear: 'Очистить чат', chat_attach: 'Добавить фото или файл', chat_send: 'Отправить', chat_stop: 'Остановить', chat_placeholder: 'Напишите сообщение…', chat_note: 'Enter — отправить · Shift+Enter — новая строка · до 4 файлов', chat_empty_title: 'Чем займёмся?', chat_empty_text: 'Выберите модель, задайте уровень рассуждения и отправьте сообщение. Можно приложить изображение, PDF, текст или код.', chat_untitled: 'Новый диалог', chat_you: 'Вы', chat_assistant: 'ИИ', chat_tokens_used: 'токенов', chat_no_key: 'Сначала введите и проверьте API-ключ.', chat_empty_message: 'Напишите сообщение или добавьте файл.', chat_file_limit: 'Можно прикрепить не больше 4 файлов.', chat_image_large: 'Изображение слишком большое. Максимум — 3 МБ.', chat_file_large: 'Файл слишком большой. Максимум — 1 МБ.', chat_file_unsupported: 'Этот формат файла пока не поддерживается.', chat_pdf_unavailable: 'Не удалось прочитать PDF. Попробуйте TXT или Markdown.', chat_file_read_error: 'Не удалось прочитать файл.', chat_vision_hint: 'Если модель не поддерживает изображения, выберите vision-модель.', chat_error_generic: 'Не удалось получить ответ. Проверьте соединение или выберите другую модель.', chat_error_401: 'API-ключ отклонён. Проверьте ключ и попробуйте снова.', chat_error_402: 'На ключе недостаточно токенов для этого запроса.', chat_error_429: 'Слишком много запросов. Немного подождите и повторите.', chat_error_503: 'Модель временно перегружена. Повторите позже или выберите другую.', chat_stopped: 'Генерация остановлена', chat_clear_confirm: 'Очистить сохранённую историю этого ключа?', chat_attach_count: '{count} влож.',
     change_key: 'Изменить API-ключ', copy: 'Копировать', done: 'Готово', auto_install: 'Автоматическая установка', remove_key: 'Удаление ключа',
     auto_note: 'Скопируйте и выполните одну команду в терминале.', auto_note_windows: 'Скопируйте и выполните одну команду в powershell.',
     remove_note: 'Закройте приложение и запустите команду. Она уберёт настройки подключения с этого устройства. Сам API-ключ останется активным — его можно будет подключить снова.',
@@ -4222,7 +4199,7 @@ const i18n = {
     available_balance: 'Available balance', tokens: 'tokens', clients: 'Clients', loading_guides: 'Loading guides…',
     catalog: 'Catalog', model_coefficients: 'Model coefficients', coefficients_intro: 'Current usage coefficients for every supported model.',
     model: 'Model', provider: 'Provider', coefficient: 'Coefficient', model_status: 'Status', model_available: 'Operational', model_degraded: 'Unstable', model_unavailable: 'Unavailable', model_unknown: 'Not checked', copied: 'Copied', search: 'Find a model',
-    chat_new: 'New chat', chat_history: 'Chats in this tab', chat_privacy: 'The key and attachments disappear when this tab is closed', chat_model: 'Model', chat_effort: 'Effort', chat_effort_auto: 'Auto', chat_clear: 'Clear chat', chat_attach: 'Add an image or file', chat_send: 'Send', chat_stop: 'Stop', chat_placeholder: 'Write a message…', chat_note: 'Enter to send · Shift+Enter for a new line · up to 4 files', chat_empty_title: 'What can I help with?', chat_empty_text: 'Choose a model and reasoning effort, then send a message. You can attach an image, PDF, text, or code.', chat_untitled: 'New chat', chat_you: 'You', chat_assistant: 'AI', chat_tokens_used: 'tokens', chat_no_key: 'Enter and verify an API key first.', chat_empty_message: 'Write a message or add a file.', chat_file_limit: 'You can attach up to 4 files.', chat_image_large: 'The image is too large. Maximum size is 3 MB.', chat_file_large: 'The file is too large. Maximum size is 1 MB.', chat_file_unsupported: 'This file format is not supported yet.', chat_pdf_unavailable: 'Could not read this PDF. Try TXT or Markdown.', chat_file_read_error: 'Could not read this file.', chat_vision_hint: 'If the model does not support images, choose a vision model.', chat_error_generic: 'Could not get a response. Check your connection or choose another model.', chat_error_401: 'The API key was rejected. Check the key and try again.', chat_error_402: 'This key does not have enough tokens for the request.', chat_error_429: 'Too many requests. Wait briefly and try again.', chat_error_503: 'The model is temporarily overloaded. Retry later or choose another model.', chat_stopped: 'Generation stopped', chat_clear_confirm: 'Clear the current chat?', chat_attach_count: '{count} attachments',
+    chat_saved: 'History is saved for this key', chat_model: 'Model', chat_effort: 'Effort', chat_effort_auto: 'Auto', chat_clear: 'Clear chat', chat_attach: 'Add an image or file', chat_send: 'Send', chat_stop: 'Stop', chat_placeholder: 'Write a message…', chat_note: 'Enter to send · Shift+Enter for a new line · up to 4 files', chat_empty_title: 'What can I help with?', chat_empty_text: 'Choose a model and reasoning effort, then send a message. You can attach an image, PDF, text, or code.', chat_untitled: 'New chat', chat_you: 'You', chat_assistant: 'AI', chat_tokens_used: 'tokens', chat_no_key: 'Enter and verify an API key first.', chat_empty_message: 'Write a message or add a file.', chat_file_limit: 'You can attach up to 4 files.', chat_image_large: 'The image is too large. Maximum size is 3 MB.', chat_file_large: 'The file is too large. Maximum size is 1 MB.', chat_file_unsupported: 'This file format is not supported yet.', chat_pdf_unavailable: 'Could not read this PDF. Try TXT or Markdown.', chat_file_read_error: 'Could not read this file.', chat_vision_hint: 'If the model does not support images, choose a vision model.', chat_error_generic: 'Could not get a response. Check your connection or choose another model.', chat_error_401: 'The API key was rejected. Check the key and try again.', chat_error_402: 'This key does not have enough tokens for the request.', chat_error_429: 'Too many requests. Wait briefly and try again.', chat_error_503: 'The model is temporarily overloaded. Retry later or choose another model.', chat_stopped: 'Generation stopped', chat_clear_confirm: 'Clear the saved history for this key?', chat_attach_count: '{count} attachments',
     change_key: 'Change API key', copy: 'Copy', done: 'Done', auto_install: 'Automatic installation', remove_key: 'Remove API key',
     auto_note: 'Copy and run this command in your terminal.', auto_note_windows: 'Copy and run this command in PowerShell.',
     remove_note: 'Close the app and run the command. It removes the connection settings from this device. The API key stays active and can be connected again later.',
@@ -5167,14 +5144,14 @@ function renderModels(query = '') {
 }
 
 // === AI CHAT ===
-const CHAT_SESSION_KEY = 'prompt_port_chat_v1';
+const CHAT_STORAGE_PREFIX = 'prompt_port_chat_key_v2_';
 
 function createChatId() {
   return (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`).replace(/[^a-zA-Z0-9-]/g, '');
 }
 
-function createConversation(makeActive = true) {
-  const conversation = {
+function createConversation() {
+  return {
     id: createChatId(),
     title: t('chat_untitled'),
     model: $('#chatModel')?.value || 'gpt-5.6-terra',
@@ -5183,57 +5160,85 @@ function createConversation(makeActive = true) {
     updatedAt: Date.now(),
     messages: []
   };
-  state.chat.conversations.unshift(conversation);
-  if (makeActive) state.chat.activeId = conversation.id;
-  state.chat.attachments = [];
-  saveChatState();
-  return conversation;
 }
 
 function activeConversation() {
-  return state.chat.conversations.find(conversation => conversation.id === state.chat.activeId) || state.chat.conversations[0] || createConversation();
+  if (!state.chat.conversation) state.chat.conversation = createConversation();
+  return state.chat.conversation;
 }
 
-function restoreChatState() {
+async function chatStorageKeyForApiKey(apiKey) {
+  const bytes = new TextEncoder().encode(apiKey.trim());
+  const digest = await crypto.subtle.digest('SHA-256', bytes);
+  const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+  return `${CHAT_STORAGE_PREFIX}${fingerprint}`;
+}
+
+function sanitizeStoredConversation(saved) {
+  if (!saved || typeof saved !== 'object') return createConversation();
+  return {
+    id: String(saved.id || createChatId()),
+    title: String(saved.title || t('chat_untitled')).slice(0, 80),
+    model: String(saved.model || 'gpt-5.6-terra'),
+    effort: ['auto', 'low', 'medium', 'high', 'max'].includes(saved.effort) ? saved.effort : 'auto',
+    createdAt: Number(saved.createdAt) || Date.now(),
+    updatedAt: Number(saved.updatedAt) || Date.now(),
+    messages: Array.isArray(saved.messages) ? saved.messages.slice(-60).filter(message => ['user', 'assistant'].includes(message.role)).map(message => ({
+      id: String(message.id || createChatId()),
+      role: message.role,
+      text: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
+      apiContent: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
+      files: Array.isArray(message.files) ? message.files.slice(0, CHAT_MAX_FILES).map(file => ({ name: String(file.name || ''), kind: String(file.kind || 'file') })) : [],
+      createdAt: Number(message.createdAt) || Date.now(),
+      usage: message.usage && typeof message.usage === 'object' ? message.usage : null
+    })) : []
+  };
+}
+
+async function loadChatForApiKey(apiKey) {
+  state.chat.storageKey = await chatStorageKeyForApiKey(apiKey);
   try {
-    const saved = JSON.parse(safeSession.getItem(CHAT_SESSION_KEY) || '{}');
-    if (Array.isArray(saved.conversations)) {
-      state.chat.conversations = saved.conversations.slice(0, 12).map(conversation => ({
-        id: String(conversation.id || createChatId()),
-        title: String(conversation.title || t('chat_untitled')).slice(0, 80),
-        model: String(conversation.model || 'gpt-5.6-terra'),
-        effort: ['auto', 'low', 'medium', 'high', 'max'].includes(conversation.effort) ? conversation.effort : 'auto',
-        createdAt: Number(conversation.createdAt) || Date.now(),
-        updatedAt: Number(conversation.updatedAt) || Date.now(),
-        messages: Array.isArray(conversation.messages) ? conversation.messages.slice(-60).filter(message => ['user', 'assistant'].includes(message.role)).map(message => ({
-          id: String(message.id || createChatId()),
-          role: message.role,
-          text: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
-          apiContent: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
-          files: Array.isArray(message.files) ? message.files.slice(0, CHAT_MAX_FILES).map(file => ({ name: String(file.name || ''), kind: String(file.kind || 'file') })) : [],
-          createdAt: Number(message.createdAt) || Date.now(),
-          usage: message.usage && typeof message.usage === 'object' ? message.usage : null
-        })) : []
-      }));
-      state.chat.activeId = state.chat.conversations.some(item => item.id === saved.activeId) ? saved.activeId : state.chat.conversations[0]?.id || null;
-    }
-  } catch {}
-  if (!state.chat.conversations.length) createConversation();
+    state.chat.conversation = sanitizeStoredConversation(JSON.parse(safeStorage.getItem(state.chat.storageKey) || 'null'));
+  } catch { state.chat.conversation = createConversation(); }
+  state.chat.attachments = [];
+  state.chat.error = '';
+  renderChat();
 }
 
 function saveChatState() {
-  const conversations = state.chat.conversations.slice(0, 12).map(conversation => ({
-    ...conversation,
-    messages: conversation.messages.slice(-60).map(message => ({
+  if (!state.chat.storageKey) return;
+  const conversation = activeConversation();
+  let storedCharacters = 0;
+  const messages = [];
+  for (const message of [...conversation.messages].reverse()) {
+    const text = String(message.text || '').slice(0, 80000);
+    if (message.pending && !text) continue;
+    if (storedCharacters + text.length > 800000 && messages.length) break;
+    storedCharacters += text.length;
+    messages.unshift({
       id: message.id,
       role: message.role,
-      text: message.text,
-      files: message.files || [],
+      text,
+      files: Array.isArray(message.files)
+        ? message.files.slice(0, CHAT_MAX_FILES).map(file => ({
+            name: String(file.name || ''),
+            kind: String(file.kind || 'file')
+          }))
+        : [],
       createdAt: message.createdAt,
       usage: message.usage || null
-    }))
+    });
+    if (messages.length >= 60) break;
+  }
+  safeStorage.setItem(state.chat.storageKey, JSON.stringify({
+    id: conversation.id,
+    title: conversation.title,
+    model: conversation.model,
+    effort: conversation.effort,
+    createdAt: conversation.createdAt,
+    updatedAt: conversation.updatedAt,
+    messages
   }));
-  safeSession.setItem(CHAT_SESSION_KEY, JSON.stringify({ activeId: state.chat.activeId, conversations }));
 }
 
 function formatChatTime(timestamp) {
@@ -5272,15 +5277,6 @@ function renderChatModels() {
   $('#chatEffort').value = conversation.effort || 'auto';
 }
 
-function renderChatHistory() {
-  const history = $('#chatHistory');
-  if (!history) return;
-  history.innerHTML = state.chat.conversations.map(conversation => `
-    <button class="chat-history-item ${conversation.id === state.chat.activeId ? 'is-active' : ''}" type="button" data-chat-id="${escapeHtml(conversation.id)}">
-      <span>${escapeHtml(conversation.title || t('chat_untitled'))}</span><small>${formatChatTime(conversation.updatedAt)}</small>
-    </button>`).join('');
-}
-
 function renderChatAttachments() {
   const container = $('#chatAttachments');
   if (!container) return;
@@ -5292,7 +5288,6 @@ function renderChat() {
   const container = $('#chatMessages');
   if (!container) return;
   const conversation = activeConversation();
-  renderChatHistory();
   renderChatModels();
   renderChatAttachments();
 
@@ -5439,6 +5434,7 @@ async function sendChatMessage() {
   state.chat.controller = new AbortController();
   input.value = '';
   input.style.height = '';
+  saveChatState();
   renderChat();
 
   const payload = {
@@ -5636,7 +5632,7 @@ async function init() {
     $('#guidePanel').innerHTML = `<div class="empty-guide">${t('read_error')}</div>`;
   }
 
-  restoreChatState();
+  state.chat.conversation = createConversation();
   applyLanguage();
   showKeyStage();
 
@@ -5673,6 +5669,7 @@ async function init() {
       return;
     }
     await modelsPromise;
+    await loadChatForApiKey(value);
     submitButton.disabled = false;
     submitLabel.textContent = t('continue');
     enterApp(state.os || 'windows');
@@ -5694,6 +5691,10 @@ async function init() {
     stopModelsAutoUpdate();
     balanceRequestId += 1;
     state.apiKey = '';
+    state.chat.storageKey = '';
+    state.chat.conversation = createConversation();
+    state.chat.attachments = [];
+    state.chat.error = '';
     safeStorage.removeItem('cerberus_api_key');
     $('#apiKey').value = '';
     $('#keyError').textContent = '';
@@ -5782,33 +5783,14 @@ async function init() {
     state.chat.attachments = state.chat.attachments.filter(file => file.id !== button.dataset.removeAttachment);
     renderChatAttachments();
   });
-  $('#chatNew').addEventListener('click', () => {
-    if (state.chat.generating) return;
-    createConversation();
-    state.chat.conversations = state.chat.conversations.slice(0, 12);
-    state.chat.error = '';
-    renderChat();
-    $('#chatInput').focus();
-  });
-  $('#chatHistory').addEventListener('click', event => {
-    const button = event.target.closest('[data-chat-id]');
-    if (!button || state.chat.generating) return;
-    state.chat.activeId = button.dataset.chatId;
-    state.chat.attachments = [];
-    state.chat.error = '';
-    saveChatState();
-    renderChat();
-  });
   $('#chatClear').addEventListener('click', () => {
     if (state.chat.generating) return;
     const conversation = activeConversation();
     if (conversation.messages.length && !window.confirm(t('chat_clear_confirm'))) return;
-    conversation.messages = [];
-    conversation.title = t('chat_untitled');
-    conversation.updatedAt = Date.now();
+    if (state.chat.storageKey) safeStorage.removeItem(state.chat.storageKey);
+    state.chat.conversation = createConversation();
     state.chat.attachments = [];
     state.chat.error = '';
-    saveChatState();
     renderChat();
   });
   $('#chatModel').addEventListener('change', event => {
