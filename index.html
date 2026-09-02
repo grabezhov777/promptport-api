@@ -4132,6 +4132,9 @@ const CHAT_MAX_FILES = 4;
 const CHAT_MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const CHAT_MAX_TEXT_BYTES = 1024 * 1024;
 const CHAT_MAX_CONTEXT_CHARS = 280000;
+const CHAT_MAX_STORED_MESSAGE_CHARS = 40000;
+const CHAT_MAX_STORED_TOTAL_CHARS = 300000;
+const CHAT_MAX_STORED_MESSAGES = 60;
 let balanceRequestId = 0;
 let balanceAbortController = null;
 let balanceRetryTimer = null;
@@ -5168,14 +5171,56 @@ function activeConversation() {
 }
 
 async function chatStorageKeyForApiKey(apiKey) {
-  const bytes = new TextEncoder().encode(apiKey.trim());
-  const digest = await crypto.subtle.digest('SHA-256', bytes);
-  const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
-  return `${CHAT_STORAGE_PREFIX}${fingerprint}`;
+  const normalizedKey = apiKey.trim();
+  try {
+    if (crypto.subtle?.digest) {
+      const bytes = new TextEncoder().encode(normalizedKey);
+      const digest = await crypto.subtle.digest('SHA-256', bytes);
+      const fingerprint = [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      return `${CHAT_STORAGE_PREFIX}${fingerprint}`;
+    }
+  } catch {}
+
+  // Some embedded/mobile browsers do not expose Web Crypto. Keep the key
+  // itself out of storage while still providing a stable per-key lookup.
+  const hashes = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35];
+  for (let index = 0; index < normalizedKey.length; index += 1) {
+    const code = normalizedKey.charCodeAt(index);
+    hashes[0] = Math.imul(hashes[0] ^ code, 0x01000193);
+    hashes[1] = Math.imul(hashes[1] ^ code, 0x27d4eb2d);
+    hashes[2] = Math.imul(hashes[2] ^ code, 0x165667b1);
+    hashes[3] = Math.imul(hashes[3] ^ code, 0x85ebca77);
+  }
+  const fingerprint = hashes.map(hash => (hash >>> 0).toString(16).padStart(8, '0')).join('');
+  return `${CHAT_STORAGE_PREFIX}compat_${fingerprint}`;
 }
 
 function sanitizeStoredConversation(saved) {
   if (!saved || typeof saved !== 'object') return createConversation();
+  let storedCharacters = 0;
+  const messages = [];
+  const savedMessages = Array.isArray(saved.messages) ? saved.messages.slice(-CHAT_MAX_STORED_MESSAGES) : [];
+  for (const message of [...savedMessages].reverse()) {
+    if (!message || !['user', 'assistant'].includes(message.role)) continue;
+    const remaining = CHAT_MAX_STORED_TOTAL_CHARS - storedCharacters;
+    if (remaining <= 0) break;
+    const text = String(message.text || '').slice(0, Math.min(CHAT_MAX_STORED_MESSAGE_CHARS, remaining));
+    if (!text && message.pending) continue;
+    const createdAt = Number(message.createdAt);
+    storedCharacters += text.length;
+    messages.unshift({
+      id: String(message.id || createChatId()),
+      role: message.role,
+      text,
+      apiContent: text,
+      files: Array.isArray(message.files) ? message.files.slice(0, CHAT_MAX_FILES).filter(Boolean).map(file => ({
+        name: String(file.name || '').slice(0, 240),
+        kind: String(file.kind || 'file').slice(0, 24)
+      })) : [],
+      createdAt: Number.isFinite(createdAt) && createdAt > 0 ? createdAt : Date.now(),
+      usage: message.usage && typeof message.usage === 'object' ? message.usage : null
+    });
+  }
   return {
     id: String(saved.id || createChatId()),
     title: String(saved.title || t('chat_untitled')).slice(0, 80),
@@ -5183,26 +5228,21 @@ function sanitizeStoredConversation(saved) {
     effort: ['auto', 'low', 'medium', 'high', 'max'].includes(saved.effort) ? saved.effort : 'auto',
     createdAt: Number(saved.createdAt) || Date.now(),
     updatedAt: Number(saved.updatedAt) || Date.now(),
-    messages: Array.isArray(saved.messages) ? saved.messages.slice(-60).filter(message => ['user', 'assistant'].includes(message.role)).map(message => ({
-      id: String(message.id || createChatId()),
-      role: message.role,
-      text: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
-      apiContent: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
-      files: Array.isArray(message.files) ? message.files.slice(0, CHAT_MAX_FILES).map(file => ({ name: String(file.name || ''), kind: String(file.kind || 'file') })) : [],
-      createdAt: Number(message.createdAt) || Date.now(),
-      usage: message.usage && typeof message.usage === 'object' ? message.usage : null
-    })) : []
+    messages
   };
 }
 
 async function loadChatForApiKey(apiKey) {
-  state.chat.storageKey = await chatStorageKeyForApiKey(apiKey);
+  state.chat.storageKey = '';
   try {
+    state.chat.storageKey = await chatStorageKeyForApiKey(apiKey);
     state.chat.conversation = sanitizeStoredConversation(JSON.parse(safeStorage.getItem(state.chat.storageKey) || 'null'));
-  } catch { state.chat.conversation = createConversation(); }
+  } catch {
+    state.chat.storageKey = '';
+    state.chat.conversation = createConversation();
+  }
   state.chat.attachments = [];
   state.chat.error = '';
-  renderChat();
 }
 
 function saveChatState() {
@@ -5211,9 +5251,9 @@ function saveChatState() {
   let storedCharacters = 0;
   const messages = [];
   for (const message of [...conversation.messages].reverse()) {
-    const text = String(message.text || '').slice(0, 80000);
+    const text = String(message.text || '').slice(0, CHAT_MAX_STORED_MESSAGE_CHARS);
     if (message.pending && !text) continue;
-    if (storedCharacters + text.length > 800000 && messages.length) break;
+    if (storedCharacters + text.length > CHAT_MAX_STORED_TOTAL_CHARS && messages.length) break;
     storedCharacters += text.length;
     messages.unshift({
       id: message.id,
@@ -5228,7 +5268,7 @@ function saveChatState() {
       createdAt: message.createdAt,
       usage: message.usage || null
     });
-    if (messages.length >= 60) break;
+    if (messages.length >= CHAT_MAX_STORED_MESSAGES) break;
   }
   safeStorage.setItem(state.chat.storageKey, JSON.stringify({
     id: conversation.id,
@@ -5668,15 +5708,19 @@ async function init() {
       submitLabel.textContent = t('continue');
       return;
     }
-    await modelsPromise;
-    await loadChatForApiKey(value);
-    submitButton.disabled = false;
-    submitLabel.textContent = t('continue');
-    enterApp(state.os || 'windows');
-    startBalanceAutoUpdate();
-    refreshUsage();
-    startUsageAutoUpdate();
-    startModelsAutoUpdate();
+    try {
+      // Restoring history is optional and must never block a valid key from
+      // opening the application, even when old local data is malformed.
+      await Promise.allSettled([modelsPromise, loadChatForApiKey(value)]);
+      enterApp(state.os || 'windows');
+      startBalanceAutoUpdate();
+      refreshUsage();
+      startUsageAutoUpdate();
+      startModelsAutoUpdate();
+    } finally {
+      submitButton.disabled = false;
+      submitLabel.textContent = t('continue');
+    }
   });
 
   $('#apiKey').addEventListener('input', () => {
