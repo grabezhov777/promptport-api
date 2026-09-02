@@ -4330,6 +4330,12 @@ const modelCatalog = [
 ];
 let models = modelCatalog.map(model => [...model]);
 
+function modelCoefficient(modelId) {
+  const entry = modelCatalog.find(([id]) => id === modelId);
+  const coefficient = Number(entry?.[2]);
+  return Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
+}
+
 function normalizeModelStatus(model) {
   const booleanFields = [model.available, model.is_available, model.enabled, model.is_enabled, model.operational];
   const explicitBoolean = booleanFields.find(value => typeof value === 'boolean');
@@ -5237,6 +5243,10 @@ function sanitizeStoredConversation(saved) {
         kind: String(file.kind || 'file').slice(0, 24)
       })) : [],
       createdAt: Number.isFinite(createdAt) && createdAt > 0 ? createdAt : Date.now(),
+      model: message.role === 'assistant' ? String(message.model || '') : '',
+      coefficient: message.role === 'assistant' && Number.isFinite(Number(message.coefficient)) && Number(message.coefficient) > 0
+        ? Number(message.coefficient)
+        : 1,
       usage: sanitizeChatUsage(message.usage)
     });
   }
@@ -5297,6 +5307,10 @@ function saveChatState() {
             }))
           : [],
         createdAt: Number(message.createdAt) || Date.now(),
+        model: message.role === 'assistant' ? String(message.model || '') : '',
+        coefficient: message.role === 'assistant' && Number.isFinite(Number(message.coefficient)) && Number(message.coefficient) > 0
+          ? Number(message.coefficient)
+          : 1,
         usage: sanitizeChatUsage(message.usage)
       });
       if (messages.length >= CHAT_MAX_STORED_MESSAGES) break;
@@ -5317,6 +5331,18 @@ function saveChatState() {
 
 function formatChatTime(timestamp) {
   return new Intl.DateTimeFormat(state.language === 'ru' ? 'ru-RU' : 'en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp));
+}
+
+function chatChargedTokens(message) {
+  const rawTokens = Number(message.usage?.total_tokens);
+  if (!Number.isFinite(rawTokens) || rawTokens < 0) return null;
+  const coefficient = Number(message.coefficient);
+  const safeCoefficient = Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
+  return Math.round(rawTokens * safeCoefficient);
+}
+
+function formatChatCoefficient(value) {
+  return new Intl.NumberFormat(state.language === 'en' ? 'en-US' : 'ru-RU', { maximumFractionDigits: 2 }).format(value);
 }
 
 function renderChatMarkdown(value) {
@@ -5370,7 +5396,17 @@ function renderChat() {
   } else {
     container.innerHTML = conversation.messages.map(message => {
       const files = message.files?.length ? `<div class="chat-message-files">${message.files.map(file => `<span class="chat-message-file">${file.kind === 'image' ? '▧' : '≡'} ${escapeHtml(file.name)}</span>`).join('')}</div>` : '';
-      const usage = message.usage?.total_tokens != null ? `<span>${formatUsageNumber(message.usage.total_tokens)} ${escapeHtml(t('chat_tokens_used'))}</span>` : '';
+      const chargedTokens = chatChargedTokens(message);
+      const coefficient = Number(message.coefficient);
+      const safeCoefficient = Number.isFinite(coefficient) && coefficient > 0 ? coefficient : 1;
+      const rawTokens = Number(message.usage?.total_tokens);
+      const coefficientLabel = safeCoefficient !== 1 ? ` (×${escapeHtml(formatChatCoefficient(safeCoefficient))})` : '';
+      const usageTitle = chargedTokens != null && safeCoefficient !== 1
+        ? ` title="${escapeHtml(`${formatUsageNumber(rawTokens)} × ${formatChatCoefficient(safeCoefficient)} = ${formatUsageNumber(chargedTokens)}`)}"`
+        : '';
+      const usage = chargedTokens != null
+        ? `<span${usageTitle}>${formatUsageNumber(chargedTokens)} ${escapeHtml(t('chat_tokens_used'))}${coefficientLabel}</span>`
+        : '';
       const body = message.pending && !message.text ? '<span class="chat-thinking"><i></i><i></i><i></i></span>' : renderChatMarkdown(message.text);
       return `<article class="chat-message is-${message.role}" data-message-id="${escapeHtml(message.id)}">
         <div class="chat-avatar">${message.role === 'user' ? escapeHtml(t('chat_you').slice(0, 2).toUpperCase()) : 'AI'}</div>
@@ -5492,11 +5528,16 @@ async function sendChatMessage() {
   const conversation = activeConversation();
   conversation.model = $('#chatModel').value;
   conversation.effort = $('#chatEffort').value;
+  const requestModel = conversation.model;
+  const requestCoefficient = modelCoefficient(requestModel);
   const userMessage = {
     id: createChatId(), role: 'user', text: text || attachments.map(file => file.name).join(', '),
     apiContent: buildUserContent(text, attachments), files: attachments.map(({ name, kind }) => ({ name, kind })), createdAt: Date.now()
   };
-  const assistantMessage = { id: createChatId(), role: 'assistant', text: '', apiContent: '', files: [], createdAt: Date.now(), pending: true, usage: null };
+  const assistantMessage = {
+    id: createChatId(), role: 'assistant', text: '', apiContent: '', files: [], createdAt: Date.now(), pending: true,
+    model: requestModel, coefficient: requestCoefficient, usage: null
+  };
   conversation.messages.push(userMessage, assistantMessage);
   if (conversation.messages.filter(message => message.role === 'user').length === 1) {
     conversation.title = (text || attachments[0]?.name || t('chat_untitled')).replace(/\s+/g, ' ').trim().slice(0, 38);
@@ -5512,7 +5553,7 @@ async function sendChatMessage() {
   saveChatState();
 
   const payload = {
-    model: conversation.model,
+    model: requestModel,
     messages: conversation.messages.slice(0, -1).map(message => ({ role: message.role, content: message.apiContent || message.text })),
     stream: true
   };
