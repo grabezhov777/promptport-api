@@ -604,6 +604,7 @@ form label {
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
 }
 
+.brand-cluster { min-width:0; display:flex; align-items:center; }
 .brand {
   display: flex;
   align-items: center;
@@ -1955,6 +1956,32 @@ body::before { background:radial-gradient(circle at 24% 18%,rgba(255,255,255,.08
 .brand-mark { width:38px; height:38px; border:0; background:rgba(255,255,255,.085); box-shadow:inset 0 1px 1px rgba(255,255,255,.2),0 8px 22px rgba(0,0,0,.2); font-size:12px; }
 .brand-status { display:flex; align-items:center; gap:6px; margin-left:8px; padding:7px 10px; border-radius:999px; background:rgba(255,255,255,.055); color:rgba(255,255,255,.45); font:8px/1 var(--mono); letter-spacing:.12em; white-space:nowrap; }
 .brand-status i { width:5px; height:5px; border-radius:50%; background:#fff; box-shadow:0 0 9px rgba(255,255,255,.7); }
+.brand-status { position:relative; border:0; cursor:pointer; transition:color .2s,background .2s,box-shadow .2s; }
+.brand-status:hover,.brand-status:focus-visible { color:#fff; background:rgba(255,255,255,.1); outline:none; }
+.brand-status.is-checking { color:rgba(255,255,255,.58); }
+.brand-status.is-checking i { background:#d7d7d7; animation:status-pulse 1.15s ease-in-out infinite; }
+.brand-status.is-ready { color:rgba(181,235,204,.72); background:rgba(105,190,139,.08); }
+.brand-status.is-ready i { background:#8fd3a9; box-shadow:0 0 9px rgba(112,220,151,.55); }
+.brand-status.is-online { color:#bceccd; background:rgba(79,185,117,.12); }
+.brand-status.is-online i { background:#9fe0b7; box-shadow:0 0 10px rgba(112,220,151,.78); }
+.brand-status.is-degraded { color:#ffe7a1; background:rgba(242,194,64,.1); }
+.brand-status.is-degraded i { background:#f4cb5c; box-shadow:0 0 10px rgba(244,203,92,.65); }
+.brand-status.is-offline { color:#ffb1b5; background:rgba(255,82,92,.1); }
+.brand-status.is-offline i { background:#ff737b; box-shadow:0 0 10px rgba(255,82,92,.65); }
+@keyframes status-pulse { 50% { opacity:.35; transform:scale(.75); } }
+.service-popover { position:fixed; z-index:80; top:96px; left:max(18px,calc((100vw - 1480px)/2 + 16px)); width:min(310px,calc(100vw - 36px)); padding:15px; border-radius:18px; background:rgba(10,15,13,.9); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px); box-shadow:0 18px 50px rgba(0,0,0,.42),inset 0 0 0 1px rgba(205,241,218,.12),inset 0 1px 1px rgba(255,255,255,.14); opacity:0; visibility:hidden; transform:translateY(-7px); transition:opacity .18s,visibility .18s,transform .18s; }
+.service-popover.is-open { opacity:1; visibility:visible; transform:none; }
+.service-popover-head { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:12px; }
+.service-popover-head strong { color:#fff; font-size:13px; font-weight:500; }
+.service-popover-head span { color:rgba(255,255,255,.42); font:8px/1.4 var(--mono); text-align:right; }
+.service-row { min-height:34px; display:flex; align-items:center; justify-content:space-between; gap:12px; color:rgba(255,255,255,.66); font-size:11px; }
+.service-row b { display:flex; align-items:center; gap:7px; color:rgba(255,255,255,.52); font:8px/1 var(--mono); font-weight:500; text-transform:uppercase; }
+.service-row b::before { content:''; width:5px; height:5px; border-radius:50%; background:#aaa; }
+.service-row.is-online b { color:#bceccd; }.service-row.is-online b::before { background:#9fe0b7; box-shadow:0 0 8px rgba(112,220,151,.7); }
+.service-row.is-degraded b { color:#ffe7a1; }.service-row.is-degraded b::before { background:#f4cb5c; }
+.service-row.is-offline b { color:#ffb1b5; }.service-row.is-offline b::before { background:#ff737b; }
+.service-row.is-idle b,.service-row.is-checking b { color:rgba(255,255,255,.42); }
+.service-popover-note { margin-top:10px; padding-top:11px; border-top:1px solid rgba(255,255,255,.08); color:rgba(255,255,255,.4); font:8px/1.55 var(--mono); }
 .main-nav { position:relative; z-index:1; height:50px; align-self:center; padding:5px; gap:3px; border-radius:18px; background:rgba(0,0,0,.16); box-shadow:inset 0 1px 1px rgba(255,255,255,.08); }
 .nav-link { position:relative; height:40px; border:0; padding:0 20px; border-radius:14px; color:rgba(255,255,255,.58); font-size:11px; font-weight:500; transition:color .22s,background .22s,transform .22s,box-shadow .22s; }
 .nav-link:hover { color:#fff; background:rgba(255,255,255,.07); transform:translateY(-1px); }
@@ -2002,7 +2029,8 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 @media(max-width:900px){
   .topbar { top:10px; width:calc(100% - 20px); height:62px; padding:0 10px 0 12px; border-radius:20px; }
   .brand { display:flex; }
-  .brand-status { display:none; }
+  .brand-status { width:28px; height:28px; margin-left:5px; padding:0; justify-content:center; }
+  .brand-status span { display:none; }
   .brand-mark { width:34px; height:34px; }
   .main-nav { position:fixed; left:12px; right:12px; bottom:12px; top:auto; width:auto; height:62px; padding:6px; background:rgba(15,15,18,.72); backdrop-filter:blur(32px); -webkit-backdrop-filter:blur(32px); border-radius:22px; box-shadow:0 14px 40px rgba(0,0,0,.38),inset 0 1px 1px rgba(255,255,255,.16); }
   .nav-link { flex:1; height:50px; padding:0 10px; justify-content:center; }
@@ -2142,6 +2170,10 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 .chat-message-body:not(:has(pre)) code { padding:2px 5px; border-radius:5px; background:rgba(79,185,117,.1); }
 .chat-message.is-user .chat-message-body { padding:12px 15px; border-radius:4px 17px 17px 17px; background:rgba(255,255,255,.065); box-shadow:inset 0 1px 1px rgba(255,255,255,.1); }
 .chat-message-meta { margin-top:9px; display:flex; gap:10px; color:rgba(255,255,255,.3); font:8px/1.4 var(--mono); }
+.chat-message-actions { margin-top:9px; display:flex; align-items:center; gap:6px; }
+.chat-message-action { min-height:28px; border:0; padding:0 9px; display:inline-flex; align-items:center; gap:6px; border-radius:9px; background:rgba(255,255,255,.045); color:rgba(255,255,255,.48); font:8px/1 var(--mono); cursor:pointer; transition:color .18s,background .18s,transform .18s; }
+.chat-message-action:hover { color:#dff8e8; background:rgba(79,185,117,.12); transform:translateY(-1px); }
+.chat-message-action svg { width:12px; height:12px; fill:none; stroke:currentColor; stroke-width:1.7; }
 .chat-message-files { margin-top:10px; display:flex; flex-wrap:wrap; gap:7px; }
 .chat-message-file { max-width:220px; padding:7px 9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-radius:9px; color:rgba(211,244,222,.72); background:rgba(79,185,117,.09); font:8px/1 var(--mono); }
 .chat-thinking { display:inline-flex; gap:5px; padding-top:8px; }
@@ -2285,9 +2317,14 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
     overflow-x:auto;
     overflow-y:hidden;
     overscroll-behavior-inline:contain;
-    scrollbar-width:thin;
+    scrollbar-width:none;
+    -ms-overflow-style:none;
+    scroll-snap-type:x proximity;
+    mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%);
+    -webkit-mask-image:linear-gradient(90deg,#000 0,#000 calc(100% - 30px),transparent 100%);
   }
-  .client-button { flex:0 0 auto; width:auto; max-width:82vw; }
+  .client-list::-webkit-scrollbar { display:none; }
+  .client-button { flex:0 0 auto; width:auto; max-width:82vw; scroll-snap-align:start; }
   .guide-panel { overflow:hidden; }
   .code-window,.manual-guide,.quick-install,.quick-remove { min-width:0; max-width:100%; }
   .code-window pre { max-width:100%; overflow-x:auto; }
@@ -2342,6 +2379,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .language-switch { height:44px; padding:3px; }
   .language-switch button { width:33px; height:36px; }
   .header-faq { height:40px; padding:0 11px; font-size:9px; }
+  .service-popover { top:76px; left:8px; width:calc(100% - 16px); }
   .main-nav { left:8px; right:8px; height:60px; padding:5px; border-radius:20px; }
   .nav-link { height:50px; padding-inline:2px; font-size:8px; }
   .nav-link #modelCount { font-size:8px; }
@@ -2430,14 +2468,14 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   <div class="noise" aria-hidden="true"></div>
 
 
-  <section class="entry" id="entry" aria-label="Первичная настройка">
+  <section class="entry" id="entry" aria-label="Первичная настройка" data-i18n-label="entry_label">
     <div class="entry-grid" aria-hidden="true"></div>
     <div class="language-switch entry-language" aria-label="Language">
       <button type="button" data-lang="ru" aria-pressed="true">RU</button>
       <button type="button" data-lang="en" aria-pressed="false">EN</button>
     </div>
 
-    <aside class="entry-showcase" aria-label="Возможности Prompt Port">
+    <aside class="entry-showcase" aria-label="Возможности Prompt Port" data-i18n-label="showcase_label">
       <span class="showcase-kicker" data-i18n="showcase_kicker">Один ключ · все модели</span>
       <h2 data-i18n-html="showcase_title">Контролируйте доступ к <em>AI-моделям</em> в одном месте</h2>
       <p class="showcase-copy" data-i18n="showcase_copy">Проверка ключа, актуальный баланс, доступные модели и готовые инструкции для популярных AI-клиентов.</p>
@@ -2463,7 +2501,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 
     <div class="entry-stage key-stage" id="keyStage">
       <div class="entry-card">
-        <button class="key-skip" id="skipKey" type="button" aria-label="Продолжить без API-ключа">
+        <button class="key-skip" id="skipKey" type="button" aria-label="Продолжить без API-ключа" data-i18n-label="skip_key_aria">
           <span data-i18n="skip_key">Без ключа</span><b>×</b>
         </button>
         <h1 data-i18n-html="connect_key">Один ключ.<br><em>Все модели.</em></h1>
@@ -2475,11 +2513,11 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
             <button class="icon-button" id="toggleKey" type="button" aria-label="Показать ключ">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
             </button>
-            <button class="icon-button reset-button" id="resetKey" type="button" aria-label="Очистить ключ">
+            <button class="icon-button reset-button" id="resetKey" type="button" aria-label="Очистить ключ" data-i18n-label="reset_key">
               <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M18 6L6 18M6 6l12 12"/></svg>
             </button>
           </div>
-          <p class="field-hint">Формат ключа: sk-cvc-••••••••••••</p>
+          <p class="field-hint" data-i18n="key_format">Формат ключа: sk-cvc-••••••••••••</p>
           <p class="field-error" id="keyError" role="alert"></p>
           <button class="primary-button" type="submit">
             <span data-i18n="continue">Продолжить</span><span>→</span>
@@ -2499,11 +2537,13 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 
   <main class="app-shell" id="appShell" aria-hidden="true">
     <header class="topbar">
-      <a class="brand" href="#" aria-label="Prompt Port — главная">
-        <span class="brand-mark">P</span>
-        <span>PROMPT <b>PORT</b></span>
-        <span class="brand-status" aria-hidden="true"><i></i>ONLINE</span>
-      </a>
+      <div class="brand-cluster">
+        <a class="brand" href="#" aria-label="Prompt Port — главная" data-i18n-label="brand_home">
+          <span class="brand-mark">P</span>
+          <span>PROMPT <b>PORT</b></span>
+        </a>
+        <button class="brand-status is-checking" id="serviceStatus" type="button" aria-expanded="false" aria-controls="servicePopover"><i></i><span data-i18n="status_checking">ПРОВЕРКА</span></button>
+      </div>
       <div class="account-tools">
         <button class="header-faq" type="button" data-view="faq"><span data-i18n="nav_faq">FAQ</span></button>
         <div class="language-switch" aria-label="Language">
@@ -2512,8 +2552,15 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         </div>
       </div>
     </header>
+    <aside class="service-popover" id="servicePopover" aria-hidden="true">
+      <div class="service-popover-head"><strong data-i18n="status_title">Состояние сервисов</strong><span id="serviceStatusUpdated">—</span></div>
+      <div class="service-row is-idle" data-service="balance"><span data-i18n="status_balance">Баланс и ключ</span><b data-i18n="status_waiting">Ожидание</b></div>
+      <div class="service-row is-idle" data-service="models"><span data-i18n="status_models">Каталог моделей</span><b data-i18n="status_waiting">Ожидание</b></div>
+      <div class="service-row is-idle" data-service="chat"><span data-i18n="status_chat">ИИ-чат</span><b data-i18n="status_waiting">Ожидание</b></div>
+      <p class="service-popover-note" data-i18n="status_note">Статусы обновляются во время обычной работы сайта и не расходуют токены отдельно.</p>
+    </aside>
 
-    <nav class="main-nav" aria-label="Главная навигация">
+    <nav class="main-nav" aria-label="Главная навигация" data-i18n-label="nav_label">
       <a class="nav-link nav-link-buy" href="https://funpay.com/users/3427571/" target="_blank" rel="noopener noreferrer">
         <span class="nav-label" data-i18n="nav_buy">Приобрести</span>
       </a>
@@ -2540,7 +2587,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         </div>
       </div>
 
-      <button class="token-balance" id="keyButton" title="Изменить API-ключ" aria-live="polite">
+      <button class="token-balance" id="keyButton" title="Изменить API-ключ" data-i18n-title="change_key" aria-live="polite">
         <span class="token-balance-label">
           <i class="status-dot"></i>
           <span data-i18n="available_balance">Доступный баланс</span>
@@ -2551,7 +2598,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       </button>
 
       <div class="controls-row">
-        <div class="os-tabs" id="osTabs" role="tablist" aria-label="Операционная система">
+        <div class="os-tabs" id="osTabs" role="tablist" aria-label="Операционная система" data-i18n-label="os_label">
           <button data-os="windows" role="tab">
             <img src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 88 88'%3E%3Cpath fill='%23a8b2c8' d='M0 12.4l35.7-4.9v34.2H0V12.4zm35.7 33.5v34.4l-35.7-4.9V45.9h35.7zm4.9-39.7L87.8 0v41.7H40.6V6.2zm0 75.6v-33.9h47.2V88L40.6 81.8z'/%3E%3C/svg%3E" alt="">
             <span>Windows</span>
@@ -2593,7 +2640,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
           <header class="chat-topbar">
             <div class="chat-select-wrap">
               <label for="chatModel" data-i18n="chat_model">Модель</label>
-              <select class="chat-select" id="chatModel" aria-label="Модель"></select>
+              <select class="chat-select" id="chatModel" aria-label="Модель" data-i18n-label="chat_model"></select>
             </div>
             <div class="chat-select-wrap">
               <label for="chatEffort" data-i18n="chat_effort">Effort</label>
@@ -4130,8 +4177,9 @@ const state = {
   data: { windows: [], mac: [], linux: [] },
   activeApp: null,
   balance: { status: 'idle', value: null, errorKey: '', serverMessage: '', updatedAt: null, refreshing: false },
-  usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' },
+  usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '', storageKey: '' },
   modelsUpdatedAt: null,
+  services: { balance: 'idle', models: 'idle', chat: 'idle', updatedAt: null },
   chat: { conversation: null, storageKey: '', attachments: [], generating: false, controller: null, error: '' }
 };
 safeStorage.removeItem('cerberus_api_key');
@@ -4147,6 +4195,8 @@ const BALANCE_RETRY_DELAY_MS = 900;
 const BALANCE_BACKGROUND_RETRY_MS = 6000;
 const USAGE_REFRESH_INTERVAL_MS = 30000;
 const USAGE_TIMEOUT_MS = 10000;
+const USAGE_STORAGE_PREFIX = 'prompt_port_usage_key_v1_';
+const USAGE_MAX_STORED_LOGS = 300;
 const CHAT_MAX_FILES = 4;
 const CHAT_MAX_IMAGE_BYTES = 3 * 1024 * 1024;
 const CHAT_MAX_TEXT_BYTES = 1024 * 1024;
@@ -4170,7 +4220,7 @@ const i18n = {
     title: 'Prompt Port — проверка API-ключа', tagline: 'единая точка доступа к моделям',
     connect_key: 'Один ключ.<br><em>Все модели.</em>',
     key_intro: 'Проверим ключ, покажем баланс и доступные модели. Ключ используется только в текущей вкладке и отправляется сервисам проверки и каталога.',
-    api_key: 'API-ключ', continue: 'Проверить ключ', skip_key: 'Без ключа', skip_key_aria: 'Продолжить без API-ключа', key_security: 'Не сохраняется в браузере · очищается после обновления', buy_key: 'Приобрести ключ',
+    api_key: 'API-ключ', continue: 'Проверить ключ', skip_key: 'Без ключа', skip_key_aria: 'Продолжить без API-ключа', key_security: 'Не сохраняется в браузере · очищается после обновления', key_format: 'Формат ключа: sk-cvc-••••••••••••', buy_key: 'Приобрести ключ', reset_key: 'Очистить ключ', entry_label: 'Первичная настройка', showcase_label: 'Возможности Prompt Port', brand_home: 'Prompt Port — главная', nav_label: 'Главная навигация', os_label: 'Операционная система',
     showcase_kicker: 'Один ключ · все модели', showcase_title: 'Контролируйте доступ к <em>AI-моделям</em> в одном месте', showcase_copy: 'Проверка ключа, актуальный баланс, доступные модели и готовые инструкции для популярных AI-клиентов.',
     showcase_step1: 'Вставь ключ', showcase_step2: 'Подключи ключ', showcase_step3: 'Используй лучшие ИИ', showcase_privacy: 'Ключ хранится только в текущей вкладке', key_checking: 'Проверяем…', key_check_failed: 'Не удалось проверить ключ. Проверьте интернет-соединение и правильность API-ключа. Если войти всё равно не получается, включите VPN и повторите попытку.',
     os_step: '02 / рабочая система', choose_os: 'Где вы будете работать?', os_intro: 'Откроем нужный раздел сразу. Переключиться можно в любой момент.',
@@ -4179,7 +4229,7 @@ const i18n = {
     available_balance: 'Доступный баланс', tokens: 'токенов', clients: 'Клиенты', loading_guides: 'Читаем инструкции…',
     catalog: 'Каталог', model_coefficients: 'Коэффициенты моделей', coefficients_intro: 'Актуальные коэффициенты списания для всех поддерживаемых моделей.',
     model: 'Модель', provider: 'Провайдер', coefficient: 'Коэффициент', model_status: 'Статус', model_available: 'Работает', model_degraded: 'Нестабильно', model_unavailable: 'Недоступна', model_unknown: 'Не проверено', copied: 'Скопировано', search: 'Найти модель',
-    chat_saved: 'История сохраняется для этого ключа', chat_model: 'Модель', chat_effort: 'Effort', chat_effort_auto: 'Авто', chat_clear: 'Очистить чат', chat_attach: 'Добавить фото или файл', chat_send: 'Отправить', chat_stop: 'Остановить', chat_placeholder: 'Напишите сообщение…', chat_note: 'Enter — отправить · Shift+Enter — новая строка · до 4 файлов', chat_empty_title: 'Чем займёмся?', chat_empty_text: 'Выберите модель, задайте уровень рассуждения и отправьте сообщение. Можно приложить изображение, PDF, текст или код.', chat_untitled: 'Новый диалог', chat_you: 'Вы', chat_assistant: 'ИИ', chat_tokens_used: 'токенов', chat_no_key: 'Сначала введите и проверьте API-ключ.', chat_empty_message: 'Напишите сообщение или добавьте файл.', chat_file_limit: 'Можно прикрепить не больше 4 файлов.', chat_image_large: 'Изображение слишком большое. Максимум — 3 МБ.', chat_file_large: 'Файл слишком большой. Максимум — 1 МБ.', chat_file_unsupported: 'Этот формат файла пока не поддерживается.', chat_pdf_unavailable: 'Не удалось прочитать PDF. Попробуйте TXT или Markdown.', chat_file_read_error: 'Не удалось прочитать файл.', chat_vision_hint: 'Если модель не поддерживает изображения, выберите vision-модель.', chat_error_generic: 'Не удалось получить ответ. Проверьте соединение или выберите другую модель.', chat_error_401: 'API-ключ отклонён. Проверьте ключ и попробуйте снова.', chat_error_402: 'На ключе недостаточно токенов для этого запроса.', chat_error_429: 'Слишком много запросов. Немного подождите и повторите.', chat_error_503: 'Модель временно перегружена. Повторите позже или выберите другую.', chat_stopped: 'Генерация остановлена', chat_clear_confirm: 'Очистить сохранённую историю этого ключа?', chat_attach_count: '{count} влож.',
+    chat_saved: 'История сохраняется для этого ключа', chat_model: 'Модель', chat_effort: 'Effort', chat_effort_auto: 'Авто', chat_clear: 'Очистить чат', chat_attach: 'Добавить фото или файл', chat_send: 'Отправить', chat_stop: 'Остановить', chat_copy: 'Копировать', chat_reuse: 'Повторить', chat_placeholder: 'Напишите сообщение…', chat_note: 'Enter — отправить · Shift+Enter — новая строка · до 4 файлов', chat_empty_title: 'Чем займёмся?', chat_empty_text: 'Выберите модель, задайте уровень рассуждения и отправьте сообщение. Можно приложить изображение, PDF, текст или код.', chat_untitled: 'Новый диалог', chat_you: 'Вы', chat_assistant: 'ИИ', chat_tokens_used: 'токенов', chat_no_key: 'Сначала введите и проверьте API-ключ.', chat_empty_message: 'Напишите сообщение или добавьте файл.', chat_file_limit: 'Можно прикрепить не больше 4 файлов.', chat_image_large: 'Изображение слишком большое. Максимум — 3 МБ.', chat_file_large: 'Файл слишком большой. Максимум — 1 МБ.', chat_file_unsupported: 'Этот формат файла пока не поддерживается.', chat_pdf_unavailable: 'Не удалось прочитать PDF. Попробуйте TXT или Markdown.', chat_file_read_error: 'Не удалось прочитать файл.', chat_vision_hint: 'Если модель не поддерживает изображения, выберите vision-модель.', chat_error_generic: 'Не удалось получить ответ. Проверьте соединение или выберите другую модель.', chat_error_401: 'API-ключ отклонён. Проверьте ключ и попробуйте снова.', chat_error_402: 'На ключе недостаточно токенов для этого запроса.', chat_error_429: 'Слишком много запросов. Немного подождите и повторите.', chat_error_503: 'Модель временно перегружена. Повторите позже или выберите другую.', chat_stopped: 'Генерация остановлена', chat_clear_confirm: 'Очистить сохранённую историю этого ключа?', chat_attach_count: '{count} влож.', remove_attachment: 'Удалить вложение',
     change_key: 'Изменить API-ключ', copy: 'Копировать', done: 'Готово', auto_install: 'Автоматическая установка', remove_key: 'Удаление ключа',
     auto_note: 'Скопируйте и выполните одну команду в терминале.', auto_note_windows: 'Скопируйте и выполните одну команду в powershell.',
     remove_note: 'Закройте приложение и запустите команду. Она уберёт настройки подключения с этого устройства. Сам API-ключ останется активным — его можно будет подключить снова.',
@@ -4201,18 +4251,19 @@ const i18n = {
     faq_error4_text: 'Скорость зависит от выбранной модели, длины контекста, уровня рассуждения и ожидаемого объёма ответа. Сократите запрос, уберите лишние файлы, уменьшите reasoning effort или включите Fast, если он доступен. Если задержка необычно большая, повторите запрос один раз либо выберите другую модель.',
     faq_error5_title: 'Что делать, если запрос завершился ошибкой?',
     faq_error5_text: 'При Model not found проверьте точное название модели в каталоге. Ошибка 429 означает слишком много запросов: немного подождите и уменьшите их параллельность. Ошибки 502, 503, 504 и capacity unavailable обычно временные — повторите запрос с паузой или переключитесь на другую модель. Не запускайте много повторов одновременно.',
-    usage_kicker: 'Активность ключа', usage_title: 'История запросов', usage_intro: 'Последние запросы, использованные модели и фактическое списание токенов.',
+    usage_kicker: 'Активность ключа', usage_title: 'История запросов', usage_intro: 'До 300 сохранённых запросов, использованные модели и фактическое списание токенов.',
     usage_not_loaded: 'История ещё не загружена', usage_refresh: 'Обновить', usage_refreshing: 'Обновляем историю…', usage_updated_at: 'Обновлено в',
     usage_shown: 'Показано запросов', usage_total: 'всего: {count}', usage_spent: 'Списано токенов', usage_visible_period: 'по показанной истории', usage_success_rate: 'Успешность', usage_status_caption: 'успешные запросы',
     usage_waiting_title: 'История появится после проверки ключа', usage_waiting_text: 'Введите API-ключ или обновите раздел вручную.', usage_empty_title: 'Запросов пока нет', usage_empty_text: 'Когда ключ начнёт использовать модели, записи появятся здесь.',
     usage_unavailable_title: 'История недоступна для этого ключа', usage_unavailable_text: 'Журнал доступен только ключам, принадлежащим reseller-аккаунту.', usage_error_title: 'Не удалось загрузить историю', usage_error_text: 'Проверьте соединение и попробуйте обновить раздел.',
-    usage_cost: 'списано', usage_tokens: 'токенов', usage_input: 'Вход', usage_output: 'Выход', usage_cache: 'Кэш', usage_reasoning: 'Reasoning', usage_fast: 'Fast', usage_latency: 'Задержка', usage_yes: 'Да', usage_no: 'Нет', usage_success: 'Успешно', usage_error: 'Ошибка', usage_unknown: '—'
+    usage_cost: 'списано', usage_tokens: 'токенов', usage_input: 'Вход', usage_output: 'Выход', usage_cache: 'Кэш', usage_reasoning: 'Reasoning', usage_fast: 'Fast', usage_latency: 'Задержка', usage_yes: 'Да', usage_no: 'Нет', usage_success: 'Успешно', usage_error: 'Ошибка', usage_unknown: '—',
+    status_title: 'Состояние сервисов', status_balance: 'Баланс и ключ', status_models: 'Каталог моделей', status_chat: 'ИИ-чат', status_waiting: 'Ожидание', status_ready: 'Готово', status_checking: 'Проверка', status_online: 'Работает', status_degraded: 'Нестабильно', status_offline: 'Недоступно', status_note: 'Статусы обновляются во время обычной работы сайта и не расходуют токены отдельно.', status_updated: 'Обновлено'
   },
   en: {
     title: 'Prompt Port — API key check', tagline: 'one gateway to every model',
     connect_key: 'One key.<br><em>Every model.</em>',
     key_intro: 'We will validate the key, retrieve its balance and list available models. It is used only in this tab and sent to the verification and catalog services.',
-    api_key: 'API key', continue: 'Check key', skip_key: 'Without key', skip_key_aria: 'Continue without an API key', key_security: 'Not saved in the browser · cleared on refresh', buy_key: 'Purchase key',
+    api_key: 'API key', continue: 'Check key', skip_key: 'Without key', skip_key_aria: 'Continue without an API key', key_security: 'Not saved in the browser · cleared on refresh', key_format: 'Key format: sk-cvc-••••••••••••', buy_key: 'Purchase key', reset_key: 'Clear key', entry_label: 'Initial setup', showcase_label: 'Prompt Port features', brand_home: 'Prompt Port — home', nav_label: 'Main navigation', os_label: 'Operating system',
     showcase_kicker: 'One key · every model', showcase_title: 'Control access to <em>AI models</em> in one place', showcase_copy: 'Key validation, current balance, available models and ready-to-use setup guides for popular AI clients.',
     showcase_step1: 'Paste your key', showcase_step2: 'Connect the key', showcase_step3: 'Use the best AI', showcase_privacy: 'The key lives only in the current tab', key_checking: 'Checking…', key_check_failed: 'Could not verify the key. Check your connection and make sure the API key is correct. If you still cannot sign in, enable a VPN and try again.',
     os_step: '02 / operating system', choose_os: 'Where will you work?', os_intro: 'We will open the relevant section first. You can switch at any time.',
@@ -4221,7 +4272,7 @@ const i18n = {
     available_balance: 'Available balance', tokens: 'tokens', clients: 'Clients', loading_guides: 'Loading guides…',
     catalog: 'Catalog', model_coefficients: 'Model coefficients', coefficients_intro: 'Current usage coefficients for every supported model.',
     model: 'Model', provider: 'Provider', coefficient: 'Coefficient', model_status: 'Status', model_available: 'Operational', model_degraded: 'Unstable', model_unavailable: 'Unavailable', model_unknown: 'Not checked', copied: 'Copied', search: 'Find a model',
-    chat_saved: 'History is saved for this key', chat_model: 'Model', chat_effort: 'Effort', chat_effort_auto: 'Auto', chat_clear: 'Clear chat', chat_attach: 'Add an image or file', chat_send: 'Send', chat_stop: 'Stop', chat_placeholder: 'Write a message…', chat_note: 'Enter to send · Shift+Enter for a new line · up to 4 files', chat_empty_title: 'What can I help with?', chat_empty_text: 'Choose a model and reasoning effort, then send a message. You can attach an image, PDF, text, or code.', chat_untitled: 'New chat', chat_you: 'You', chat_assistant: 'AI', chat_tokens_used: 'tokens', chat_no_key: 'Enter and verify an API key first.', chat_empty_message: 'Write a message or add a file.', chat_file_limit: 'You can attach up to 4 files.', chat_image_large: 'The image is too large. Maximum size is 3 MB.', chat_file_large: 'The file is too large. Maximum size is 1 MB.', chat_file_unsupported: 'This file format is not supported yet.', chat_pdf_unavailable: 'Could not read this PDF. Try TXT or Markdown.', chat_file_read_error: 'Could not read this file.', chat_vision_hint: 'If the model does not support images, choose a vision model.', chat_error_generic: 'Could not get a response. Check your connection or choose another model.', chat_error_401: 'The API key was rejected. Check the key and try again.', chat_error_402: 'This key does not have enough tokens for the request.', chat_error_429: 'Too many requests. Wait briefly and try again.', chat_error_503: 'The model is temporarily overloaded. Retry later or choose another model.', chat_stopped: 'Generation stopped', chat_clear_confirm: 'Clear the saved history for this key?', chat_attach_count: '{count} attachments',
+    chat_saved: 'History is saved for this key', chat_model: 'Model', chat_effort: 'Effort', chat_effort_auto: 'Auto', chat_clear: 'Clear chat', chat_attach: 'Add an image or file', chat_send: 'Send', chat_stop: 'Stop', chat_copy: 'Copy', chat_reuse: 'Retry', chat_placeholder: 'Write a message…', chat_note: 'Enter to send · Shift+Enter for a new line · up to 4 files', chat_empty_title: 'What can I help with?', chat_empty_text: 'Choose a model and reasoning effort, then send a message. You can attach an image, PDF, text or code.', chat_untitled: 'New chat', chat_you: 'You', chat_assistant: 'AI', chat_tokens_used: 'tokens', chat_no_key: 'Enter and verify an API key first.', chat_empty_message: 'Write a message or add a file.', chat_file_limit: 'You can attach up to 4 files.', chat_image_large: 'The image is too large. Maximum size is 3 MB.', chat_file_large: 'The file is too large. Maximum size is 1 MB.', chat_file_unsupported: 'This file format is not supported yet.', chat_pdf_unavailable: 'Could not read this PDF. Try TXT or Markdown.', chat_file_read_error: 'Could not read this file.', chat_vision_hint: 'If the model does not support images, choose a vision model.', chat_error_generic: 'Could not get a response. Check your connection or choose another model.', chat_error_401: 'The API key was rejected. Check the key and try again.', chat_error_402: 'This key does not have enough tokens for the request.', chat_error_429: 'Too many requests. Wait briefly and try again.', chat_error_503: 'The model is temporarily overloaded. Retry later or choose another model.', chat_stopped: 'Generation stopped', chat_clear_confirm: 'Clear the saved history for this key?', chat_attach_count: '{count} attachments', remove_attachment: 'Remove attachment',
     change_key: 'Change API key', copy: 'Copy', done: 'Done', auto_install: 'Automatic installation', remove_key: 'Remove API key',
     auto_note: 'Copy and run this command in your terminal.', auto_note_windows: 'Copy and run this command in PowerShell.',
     remove_note: 'Close the app and run the command. It removes the connection settings from this device. The API key stays active and can be connected again later.',
@@ -4243,12 +4294,13 @@ const i18n = {
     faq_error4_text: 'Latency depends on the model, context length, reasoning effort, and expected response size. Shorten the prompt, remove unnecessary files, lower reasoning effort, or enable Fast when available. If the delay is unusually long, retry once or switch to another model.',
     faq_error5_title: 'What should I do when a request fails?',
     faq_error5_text: 'For Model not found, check the exact model name in the catalog. A 429 error means too many requests: wait briefly and reduce concurrency. Errors 502, 503, 504, and capacity unavailable are usually temporary; retry after a pause or switch to another model. Do not launch many retries at once.',
-    usage_kicker: 'Key activity', usage_title: 'Request history', usage_intro: 'Recent requests, models used, and actual token charges.',
+    usage_kicker: 'Key activity', usage_title: 'Request history', usage_intro: 'Up to 300 saved requests, models used, and actual token charges.',
     usage_not_loaded: 'History has not been loaded yet', usage_refresh: 'Refresh', usage_refreshing: 'Refreshing history…', usage_updated_at: 'Updated at',
     usage_shown: 'Requests shown', usage_total: 'total: {count}', usage_spent: 'Tokens charged', usage_visible_period: 'across the visible history', usage_success_rate: 'Success rate', usage_status_caption: 'successful requests',
     usage_waiting_title: 'History appears after key verification', usage_waiting_text: 'Enter an API key or refresh this section manually.', usage_empty_title: 'No requests yet', usage_empty_text: 'Once this key starts using models, entries will appear here.',
     usage_unavailable_title: 'History is unavailable for this key', usage_unavailable_text: 'Request logs are available only to keys owned by a reseller account.', usage_error_title: 'Could not load history', usage_error_text: 'Check your connection and try refreshing this section.',
-    usage_cost: 'charged', usage_tokens: 'tokens', usage_input: 'Input', usage_output: 'Output', usage_cache: 'Cache', usage_reasoning: 'Reasoning', usage_fast: 'Fast', usage_latency: 'Latency', usage_yes: 'Yes', usage_no: 'No', usage_success: 'Success', usage_error: 'Error', usage_unknown: '—'
+    usage_cost: 'charged', usage_tokens: 'tokens', usage_input: 'Input', usage_output: 'Output', usage_cache: 'Cache', usage_reasoning: 'Reasoning', usage_fast: 'Fast', usage_latency: 'Latency', usage_yes: 'Yes', usage_no: 'No', usage_success: 'Success', usage_error: 'Error', usage_unknown: '—',
+    status_title: 'Service status', status_balance: 'Balance and key', status_models: 'Model catalog', status_chat: 'AI chat', status_waiting: 'Waiting', status_ready: 'Ready', status_checking: 'Checking', status_online: 'Operational', status_degraded: 'Unstable', status_offline: 'Unavailable', status_note: 'Statuses update during normal site activity and do not consume extra tokens.', status_updated: 'Updated'
   }
 };
 
@@ -4356,11 +4408,45 @@ function normalizeModelStatus(model) {
   return 'available';
 }
 
+function setServiceState(service, status) {
+  if (!Object.prototype.hasOwnProperty.call(state.services, service)) return;
+  state.services[service] = ['checking', 'online', 'degraded', 'offline'].includes(status) ? status : 'idle';
+  state.services.updatedAt = Date.now();
+  renderServiceStatus();
+}
+
+function renderServiceStatus() {
+  const button = $('#serviceStatus');
+  const popover = $('#servicePopover');
+  if (!button || !popover) return;
+  const statuses = Object.values(state.services).filter(value => typeof value === 'string');
+  let overall = statuses.every(status => status === 'idle') ? 'ready' : 'checking';
+  if (statuses.includes('offline')) overall = statuses.includes('online') || statuses.includes('degraded') ? 'degraded' : 'offline';
+  else if (statuses.includes('degraded')) overall = 'degraded';
+  else if (statuses.every(status => status === 'online')) overall = 'online';
+  else if (statuses.includes('online')) overall = 'online';
+  button.className = `brand-status is-${overall}`;
+  $('span', button).textContent = t(`status_${overall}`);
+  button.title = t('status_title');
+  button.setAttribute('aria-label', t('status_title'));
+  $$('[data-service]', popover).forEach(row => {
+    const status = state.services[row.dataset.service] || 'idle';
+    row.className = `service-row is-${status}`;
+    $('b', row).textContent = t(`status_${status === 'idle' ? 'waiting' : status}`);
+  });
+  const updated = $('#serviceStatusUpdated');
+  if (updated) {
+    const time = state.services.updatedAt ? new Intl.DateTimeFormat(state.language === 'en' ? 'en-US' : 'ru-RU', { hour: '2-digit', minute: '2-digit' }).format(state.services.updatedAt) : '—';
+    updated.textContent = state.services.updatedAt ? `${t('status_updated')} ${time}` : '—';
+  }
+}
+
 // Автоматическая загрузка моделей и их статусов с API
 async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
   // Endpoint требует авторизацию: грузим модели только когда посетитель ввёл ключ.
   if (!state.apiKey || !state.apiKey.trim()) return false;
   const requestId = ++modelsRequestId;
+  setServiceState('models', 'checking');
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
@@ -4409,11 +4495,14 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
         renderChatModels();
         const modelCount = $('#modelCount');
         if (modelCount) modelCount.textContent = String(models.length);
+        setServiceState('models', loadedModels.every(([, , , status]) => status === 'available') ? 'online' : 'degraded');
         return true;
       }
     }
+    if (requestId === modelsRequestId) setServiceState('models', 'degraded');
   } catch (error) {
     console.warn('Не удалось загрузить модели с API, используются статические данные:', error.message);
+    if (requestId === modelsRequestId) setServiceState('models', 'offline');
   } finally {
     clearTimeout(timeoutId);
   }
@@ -4434,6 +4523,7 @@ function stopModelsAutoUpdate(resetStatus = true) {
   if (resetStatus) {
     models = models.map(([name, provider, coefficient]) => [name, provider, coefficient, 'unknown']);
     state.modelsUpdatedAt = null;
+    setServiceState('models', 'idle');
     renderModels($('#modelSearch')?.value || '');
     renderChatModels();
   }
@@ -4541,8 +4631,7 @@ function guideBlocks(manual) {
 function bindCopyButtons() {
   $$('[data-copy]').forEach(button => button.addEventListener('click', async () => {
     const value = $('code', button.closest('.code-window')).textContent;
-    try { await navigator.clipboard.writeText(value); }
-    catch { const area = document.createElement('textarea'); area.value = value; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
+    await copyText(value);
     button.textContent = t('done');
     showToast();
     setTimeout(() => button.textContent = t('copy'), 1300);
@@ -4608,6 +4697,11 @@ function setBalanceUi(status, value = null, errorKey = '', serverMessage = '', e
     ...extra
   };
   renderBalance();
+}
+
+async function copyText(value) {
+  try { await navigator.clipboard.writeText(value); }
+  catch { const area = document.createElement('textarea'); area.value = value; document.body.append(area); area.select(); document.execCommand('copy'); area.remove(); }
 }
 
 function renderBalance() {
@@ -4704,6 +4798,7 @@ async function refreshBalance(skipAnimation = false, background = false) {
 
   if (!apiKey) {
     setBalanceUi('idle');
+    setServiceState('balance', 'idle');
     return false;
   }
 
@@ -4714,6 +4809,7 @@ async function refreshBalance(skipAnimation = false, background = false) {
     renderBalance();
   } else {
     setBalanceUi('loading');
+    setServiceState('balance', 'checking');
   }
 
   try {
@@ -4729,7 +4825,6 @@ async function refreshBalance(skipAnimation = false, background = false) {
         await wait(BALANCE_RETRY_DELAY_MS);
       }
     }
-
     if (requestId !== balanceRequestId || apiKey !== state.apiKey) return false;
 
     balanceBackgroundFailures = 0;
@@ -4738,6 +4833,7 @@ async function refreshBalance(skipAnimation = false, background = false) {
       balanceRetryTimer = null;
     }
     setBalanceUi('success', balance, '', '', { updatedAt: Date.now() });
+    setServiceState('balance', 'online');
     if (!skipAnimation && !quietRefresh) animateBalance(balance);
     else $('#balanceValue').textContent = formatTokenBalance(balance);
     return true;
@@ -4751,6 +4847,7 @@ async function refreshBalance(skipAnimation = false, background = false) {
     } else {
       setBalanceUi('error', null, error.i18nKey || 'balance_failed', error.serverMessage || '');
     }
+    setServiceState('balance', ['balance_connect', 'balance_timeout'].includes(error.i18nKey) ? 'offline' : 'degraded');
     return false;
   }
 }
@@ -4798,6 +4895,7 @@ function stopBalanceAutoUpdate() {
     state.balance = { ...state.balance, refreshing: false };
     renderBalance();
   }
+  if (!state.apiKey) setServiceState('balance', 'idle');
 }
 
 // === REQUEST HISTORY ===
@@ -4813,6 +4911,56 @@ function formatUsageDate(value) {
   return new Intl.DateTimeFormat(state.language === 'en' ? 'en-US' : 'ru-RU', {
     day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
   }).format(date);
+}
+
+function sanitizeUsageLog(log) {
+  if (!log || typeof log !== 'object') return null;
+  return {
+    model: String(log.model || '').slice(0, 128),
+    reasoning_effort: String(log.reasoning_effort || '').slice(0, 32),
+    fast: Boolean(log.fast),
+    input_tokens: Number(log.input_tokens) || 0,
+    output_tokens: Number(log.output_tokens) || 0,
+    cached_tokens: Number(log.cached_tokens) || 0,
+    cost_tokens: Number(log.cost_tokens) || 0,
+    latency_ms: Number(log.latency_ms) || 0,
+    status: String(log.status || '').slice(0, 32),
+    error_message: String(log.error_message || '').slice(0, 600),
+    created_at: String(log.created_at || '').slice(0, 64)
+  };
+}
+
+function usageLogIdentity(log) {
+  return [log.created_at, log.model, log.status, log.reasoning_effort, log.fast, log.input_tokens, log.output_tokens, log.cached_tokens, log.cost_tokens, log.latency_ms, log.error_message].join('|');
+}
+
+async function ensureUsageStorage(apiKey) {
+  if (state.usage.storageKey) return;
+  const chatKey = await chatStorageKeyForApiKey(apiKey);
+  state.usage.storageKey = chatKey.replace(CHAT_STORAGE_PREFIX, USAGE_STORAGE_PREFIX);
+  try {
+    const stored = JSON.parse(safeStorage.getItem(state.usage.storageKey) || '[]');
+    if (Array.isArray(stored)) {
+      state.usage.logs = mergeUsageLogs([], stored);
+      state.usage.total = Math.max(Number(state.usage.total) || 0, state.usage.logs.length);
+    }
+  } catch {}
+}
+
+function mergeUsageLogs(current, incoming) {
+  const unique = new Map();
+  [...incoming, ...current].forEach(raw => {
+    const log = sanitizeUsageLog(raw);
+    if (log) unique.set(usageLogIdentity(log), log);
+  });
+  return [...unique.values()]
+    .sort((a, b) => (Date.parse(b.created_at) || 0) - (Date.parse(a.created_at) || 0))
+    .slice(0, USAGE_MAX_STORED_LOGS);
+}
+
+function saveUsageLogs() {
+  if (!state.usage.storageKey) return;
+  safeStorage.setItem(state.usage.storageKey, JSON.stringify(state.usage.logs.slice(0, USAGE_MAX_STORED_LOGS)));
 }
 
 function usageStateMarkup(type) {
@@ -4927,32 +5075,56 @@ async function requestUsageLogs(apiKey) {
       // A timeout may try the backup domain; cancellation caused by a new key/request must stop immediately.
       if (error.name === 'AbortError' && !timedOut) throw error;
       lastError = error;
-      if (origin === origins[origins.length - 1] || (error.retryable === false)) throw error;
+      if (error.retryable === false) throw error;
     } finally {
       clearTimeout(timeoutId);
       if (usageAbortController === controller) usageAbortController = null;
     }
   }
-  throw lastError || new Error('usage_failed');
+  const controller = new AbortController();
+  usageAbortController = controller;
+  const timeoutId = setTimeout(() => controller.abort(), USAGE_TIMEOUT_MS);
+  try {
+    const response = await fetch(MODELS_PROXY_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ action: 'usage', api_key: apiKey }),
+      signal: controller.signal
+    });
+    const data = await response.json();
+    if (response.status === 401 || response.status === 403) {
+      const error = new Error('usage_unavailable');
+      error.type = 'unavailable';
+      throw error;
+    }
+    if (!response.ok || data.success === false || !Array.isArray(data.logs)) throw lastError || new Error(data.message || 'usage_failed');
+    return { logs: data.logs, total: Number.isFinite(Number(data.total)) ? Number(data.total) : data.logs.length };
+  } finally {
+    clearTimeout(timeoutId);
+    if (usageAbortController === controller) usageAbortController = null;
+  }
 }
 
 async function refreshUsage(background = false) {
   const apiKey = state.apiKey.trim();
   if (!apiKey) {
-    state.usage = { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' };
+    state.usage = { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '', storageKey: '' };
     renderUsage();
     return false;
   }
   if (background && usageAbortController) return false;
   if (usageAbortController) usageAbortController.abort();
   const requestId = ++usageRequestId;
+  await ensureUsageStorage(apiKey);
   const previous = state.usage;
   state.usage = { ...previous, status: 'loading', errorType: '' };
   renderUsage();
   try {
     const result = await requestUsageLogs(apiKey);
     if (requestId !== usageRequestId || apiKey !== state.apiKey) return false;
-    state.usage = { status: 'success', logs: result.logs, total: result.total, updatedAt: Date.now(), errorType: '' };
+    const logs = mergeUsageLogs(previous.logs, result.logs);
+    state.usage = { ...previous, status: 'success', logs, total: Math.max(result.total, logs.length), updatedAt: Date.now(), errorType: '' };
+    saveUsageLogs();
     renderUsage();
     return true;
   } catch (error) {
@@ -4981,7 +5153,7 @@ function stopUsageAutoUpdate(resetState = true) {
   if (usageAbortController) usageAbortController.abort();
   usageAbortController = null;
   if (resetState) {
-    state.usage = { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' };
+    state.usage = { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '', storageKey: '' };
     renderUsage();
   }
 }
@@ -4997,6 +5169,7 @@ function applyLanguage() {
     element.title = t(element.dataset.i18nTitle);
     element.setAttribute('aria-label', element.title);
   });
+  $$('[data-i18n-label]').forEach(element => { element.setAttribute('aria-label', t(element.dataset.i18nLabel)); });
   $$('[data-lang]').forEach(button => {
     const active = button.dataset.lang === state.language;
     button.classList.toggle('is-active', active);
@@ -5010,6 +5183,7 @@ function applyLanguage() {
   renderBalance();
   renderUsage();
   renderChat();
+  renderServiceStatus();
   if (state.activeApp) renderGuide();
 }
 
@@ -5408,9 +5582,13 @@ function renderChat() {
         ? `<span${usageTitle}>${formatUsageNumber(chargedTokens)} ${escapeHtml(t('chat_tokens_used'))}${coefficientLabel}</span>`
         : '';
       const body = message.pending && !message.text ? '<span class="chat-thinking"><i></i><i></i><i></i></span>' : renderChatMarkdown(message.text);
+      const actions = message.role === 'assistant' && !message.pending && message.text ? `<div class="chat-message-actions">
+        <button class="chat-message-action" type="button" data-chat-copy="${escapeHtml(message.id)}" title="${escapeHtml(t('chat_copy'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"/><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"/></svg>${escapeHtml(t('chat_copy'))}</button>
+        <button class="chat-message-action" type="button" data-chat-reuse="${escapeHtml(message.id)}" title="${escapeHtml(t('chat_reuse'))}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 12a8 8 0 1 0 2.34-5.66L4 8.68"/><path d="M4 4v4.68h4.68"/></svg>${escapeHtml(t('chat_reuse'))}</button>
+      </div>` : '';
       return `<article class="chat-message is-${message.role}" data-message-id="${escapeHtml(message.id)}">
         <div class="chat-avatar">${message.role === 'user' ? escapeHtml(t('chat_you').slice(0, 2).toUpperCase()) : 'AI'}</div>
-        <div><div class="chat-message-body">${body}</div>${files}<div class="chat-message-meta"><span>${escapeHtml(formatChatTime(message.createdAt))}</span>${usage}</div></div>
+        <div><div class="chat-message-body">${body}</div>${files}<div class="chat-message-meta"><span>${escapeHtml(formatChatTime(message.createdAt))}</span>${usage}</div>${actions}</div>
       </article>`;
     }).join('') + (state.chat.error ? `<div class="chat-error">${escapeHtml(state.chat.error)}</div>` : '');
   }
@@ -5547,6 +5725,7 @@ async function sendChatMessage() {
   state.chat.error = '';
   state.chat.generating = true;
   state.chat.controller = new AbortController();
+  setServiceState('chat', 'checking');
   input.value = '';
   input.style.height = '';
   renderChat();
@@ -5615,13 +5794,16 @@ async function sendChatMessage() {
       } catch {}
     }
     if (!assistantMessage.text.trim()) throw new Error(t('chat_error_generic'));
+    setServiceState('chat', 'online');
   } catch (error) {
     if (error.name === 'AbortError') {
       if (!assistantMessage.text) conversation.messages = conversation.messages.filter(message => message.id !== assistantMessage.id);
       state.chat.error = t('chat_stopped');
+      setServiceState('chat', assistantMessage.text ? 'online' : 'idle');
     } else {
       if (!assistantMessage.text) conversation.messages = conversation.messages.filter(message => message.id !== assistantMessage.id);
       state.chat.error = error.message || chatErrorForStatus(error.status);
+      setServiceState('chat', error.status ? 'degraded' : 'offline');
     }
   } finally {
     assistantMessage.pending = false;
@@ -5902,6 +6084,31 @@ async function init() {
     state.chat.attachments = state.chat.attachments.filter(file => file.id !== button.dataset.removeAttachment);
     renderChatAttachments();
   });
+  $('#chatMessages').addEventListener('click', async event => {
+    const copyButton = event.target.closest('[data-chat-copy]');
+    if (copyButton) {
+      const message = activeConversation().messages.find(item => item.id === copyButton.dataset.chatCopy);
+      if (!message?.text) return;
+      await copyText(message.text);
+      showToast();
+      return;
+    }
+    const reuseButton = event.target.closest('[data-chat-reuse]');
+    if (!reuseButton || state.chat.generating) return;
+    const conversation = activeConversation();
+    const assistantIndex = conversation.messages.findIndex(item => item.id === reuseButton.dataset.chatReuse);
+    const userMessage = [...conversation.messages.slice(0, assistantIndex)].reverse().find(item => item.role === 'user');
+    if (!userMessage) return;
+    const assistantMessage = conversation.messages[assistantIndex];
+    if (assistantMessage?.model && models.some(([id]) => id === assistantMessage.model)) {
+      conversation.model = assistantMessage.model;
+      $('#chatModel').value = assistantMessage.model;
+    }
+    const input = $('#chatInput');
+    input.value = userMessage.text || '';
+    input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.focus();
+  });
   $('#chatClear').addEventListener('click', () => {
     if (state.chat.generating) return;
     const conversation = activeConversation();
@@ -5928,6 +6135,20 @@ async function init() {
   ['dragenter', 'dragover'].forEach(type => chatComposer.addEventListener(type, event => { event.preventDefault(); chatComposer.classList.add('is-dragging'); }));
   ['dragleave', 'drop'].forEach(type => chatComposer.addEventListener(type, event => { event.preventDefault(); chatComposer.classList.remove('is-dragging'); }));
   chatComposer.addEventListener('drop', event => addChatFiles(event.dataTransfer.files));
+  $('#serviceStatus').addEventListener('click', () => {
+    const button = $('#serviceStatus');
+    const popover = $('#servicePopover');
+    const open = !popover.classList.contains('is-open');
+    popover.classList.toggle('is-open', open);
+    popover.setAttribute('aria-hidden', String(!open));
+    button.setAttribute('aria-expanded', String(open));
+  });
+  document.addEventListener('click', event => {
+    if (event.target.closest('#serviceStatus,#servicePopover')) return;
+    $('#servicePopover').classList.remove('is-open');
+    $('#servicePopover').setAttribute('aria-hidden', 'true');
+    $('#serviceStatus').setAttribute('aria-expanded', 'false');
+  });
   $('.brand').addEventListener('click', event => { event.preventDefault(); setView('guides'); });
 
   document.addEventListener('visibilitychange', () => {
