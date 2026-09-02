@@ -4422,16 +4422,28 @@ function setServiceState(service, status) {
   renderServiceStatus();
 }
 
+function overallServiceStatus(statuses) {
+  const serviceStatuses = statuses.filter(status => ['idle', 'checking', 'online', 'degraded', 'offline'].includes(status));
+  if (!serviceStatuses.length || serviceStatuses.every(status => status === 'idle')) return 'ready';
+  if (serviceStatuses.every(status => status === 'offline')) return 'offline';
+  const unstableCount = serviceStatuses.filter(status => status === 'degraded' || status === 'offline').length;
+  if (unstableCount >= 2) return 'degraded';
+  if (serviceStatuses.includes('checking') && !serviceStatuses.includes('online')) return 'checking';
+  return 'online';
+}
+
+function modelCatalogServiceStatus(modelRows) {
+  if (!modelRows.length) return 'degraded';
+  const workingCount = modelRows.filter(([, , , status = 'unknown']) => status === 'available' || status === 'unknown').length;
+  return workingCount * 3 >= modelRows.length * 2 ? 'online' : 'degraded';
+}
+
 function renderServiceStatus() {
   const button = $('#serviceStatus');
   const popover = $('#servicePopover');
   if (!button || !popover) return;
   const statuses = Object.values(state.services).filter(value => typeof value === 'string');
-  let overall = statuses.every(status => status === 'idle') ? 'ready' : 'checking';
-  if (statuses.includes('offline')) overall = statuses.includes('online') || statuses.includes('degraded') ? 'degraded' : 'offline';
-  else if (statuses.includes('degraded')) overall = 'degraded';
-  else if (statuses.every(status => status === 'online')) overall = 'online';
-  else if (statuses.includes('online')) overall = 'online';
+  const overall = overallServiceStatus(statuses);
   button.className = `brand-status is-${overall}`;
   $('span', button).textContent = t(`status_${overall}`);
   button.title = t('status_title');
@@ -4502,7 +4514,7 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
         renderChatModels();
         const modelCount = $('#modelCount');
         if (modelCount) modelCount.textContent = String(models.length);
-        setServiceState('models', loadedModels.every(([, , , status]) => status === 'available') ? 'online' : 'degraded');
+        setServiceState('models', modelCatalogServiceStatus(loadedModels));
         return true;
       }
     }
