@@ -652,6 +652,11 @@ form label {
 
 .nav-link span { margin-left: 5px; color: var(--text-muted); font: 9px var(--mono); }
 .nav-link .nav-label { margin-left: 0; color: inherit; font: inherit; }
+.nav-chat { margin:1px; height:38px; box-shadow:inset 0 0 0 1px rgba(244,203,92,.78),0 0 18px rgba(226,180,55,.08); color:#fff4c5; }
+.nav-chat:hover { color:#fff8d7; background:rgba(242,194,64,.09); box-shadow:inset 0 0 0 1px rgba(255,216,105,.95),0 0 20px rgba(226,180,55,.13); }
+.nav-chat.is-active { color:#fff5c9; background:linear-gradient(145deg,rgba(239,191,58,.18),rgba(167,126,24,.08)); box-shadow:inset 0 0 0 1px rgba(255,216,105,.92),inset 0 1px 1px rgba(255,246,199,.16),0 8px 24px rgba(132,95,16,.16); }
+.nav-chat.is-active::after { background:#f4cb5c; box-shadow:0 0 12px rgba(244,203,92,.72); }
+.nav-chat .nav-beta { margin-left:7px !important; padding:4px 6px !important; border-radius:999px; background:rgba(244,203,92,.16) !important; color:#ffe69a !important; box-shadow:inset 0 0 0 1px rgba(244,203,92,.22); font:700 7px/1 var(--mono) !important; letter-spacing:.08em; }
 
 .account-tools {
   justify-self: end;
@@ -659,6 +664,24 @@ form label {
   align-items: center;
   gap: 9px;
 }
+
+.header-faq {
+  height: 42px;
+  border: 0;
+  padding: 0 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 13px;
+  background: rgba(255,255,255,.055);
+  color: rgba(255,255,255,.62);
+  box-shadow: inset 0 1px 1px rgba(255,255,255,.1);
+  font: 500 10px/1 var(--sans);
+  cursor: pointer;
+  transition: color .2s, background .2s, transform .2s, box-shadow .2s;
+}
+.header-faq:hover { color:#fff; background:rgba(255,255,255,.09); transform:translateY(-1px); }
+.header-faq.is-active { color:#dff8e8; background:rgba(79,185,117,.14); box-shadow:inset 0 1px 1px rgba(220,255,232,.16),0 0 0 1px rgba(143,211,169,.2); }
 
 /* Glassmorphism Language Switch */
 .language-switch {
@@ -1954,6 +1977,10 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 .brand-status i { background:#a7e5bd; box-shadow:0 0 10px rgba(112,220,151,.78); }
 .nav-link.is-active { background:linear-gradient(145deg,rgba(126,220,159,.2),rgba(67,145,96,.09)); box-shadow:inset 0 1px 1px rgba(220,255,232,.2),0 8px 24px rgba(47,135,79,.18); }
 .nav-link.is-active::after { background:#9fe0b7; box-shadow:0 0 12px rgba(112,220,151,.78); }
+.main-nav .nav-chat { margin:1px; height:38px; color:#fff4c5; background:rgba(242,194,64,.035); box-shadow:inset 0 0 0 1px rgba(244,203,92,.78),0 0 18px rgba(226,180,55,.08); }
+.main-nav .nav-chat:hover { color:#fff8d7; background:rgba(242,194,64,.09); box-shadow:inset 0 0 0 1px rgba(255,216,105,.95),0 0 20px rgba(226,180,55,.13); }
+.main-nav .nav-chat.is-active { color:#fff5c9; background:linear-gradient(145deg,rgba(239,191,58,.18),rgba(167,126,24,.08)); box-shadow:inset 0 0 0 1px rgba(255,216,105,.92),inset 0 1px 1px rgba(255,246,199,.16),0 8px 24px rgba(132,95,16,.16); }
+.main-nav .nav-chat.is-active::after { background:#f4cb5c; box-shadow:0 0 12px rgba(244,203,92,.72); }
 .key-stage .primary-button { background:linear-gradient(145deg,rgba(126,220,159,.2),rgba(67,145,96,.14)) !important; box-shadow:0 6px 22px rgba(79,185,117,.28),inset 0 1px 1px rgba(220,255,232,.18) !important; }
 .key-stage .primary-button:hover { background:linear-gradient(145deg,rgba(126,220,159,.28),rgba(67,145,96,.2)) !important; box-shadow:0 10px 30px rgba(79,185,117,.38),inset 0 1px 1px rgba(220,255,232,.22) !important; }
 .status-dot,.route-lamp { background:#9fe0b7; box-shadow:0 0 11px rgba(112,220,151,.62); }
@@ -2220,7 +2247,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
     transform:none;
     bottom:max(10px,env(safe-area-inset-bottom));
     display:grid;
-    grid-template-columns:repeat(6,minmax(0,1fr));
+    grid-template-columns:repeat(5,minmax(0,1fr));
     overflow:visible;
   }
   .nav-link {
@@ -2230,6 +2257,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
     white-space:nowrap;
   }
   .nav-link span { margin-left:3px; }
+  .main-nav .nav-chat { height:48px; margin:1px; }
 
   .view { padding-bottom:35px; }
   .chat-view { width:calc(100% - 20px); padding-top:82px; }
@@ -2306,6 +2334,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .brand-mark { flex:0 0 32px; width:32px; height:32px; }
   .language-switch { height:44px; padding:3px; }
   .language-switch button { width:33px; height:36px; }
+  .header-faq { height:40px; padding:0 11px; font-size:9px; }
   .main-nav { left:8px; right:8px; height:60px; padding:5px; border-radius:20px; }
   .nav-link { height:50px; padding-inline:2px; font-size:8px; }
   .nav-link #modelCount { font-size:8px; }
@@ -2376,8 +2405,10 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 
 @media (max-width:350px) {
   .brand>span:nth-child(2) { display:none; }
+  .header-faq { padding:0 9px; }
   .nav-link { font-size:9px; padding-inline:3px; }
   .nav-link span:not(.nav-label) { display:none; }
+  .nav-chat .nav-beta { position:absolute; top:2px; right:2px; display:inline-flex !important; padding:2px 3px !important; font-size:5px !important; }
   .guide-index { display:none; }
 }
   </style>
@@ -2466,6 +2497,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <span class="brand-status" aria-hidden="true"><i></i>ONLINE</span>
       </a>
       <div class="account-tools">
+        <button class="header-faq" type="button" data-view="faq"><span data-i18n="nav_faq">FAQ</span></button>
         <div class="language-switch" aria-label="Language">
           <button type="button" data-lang="ru" aria-pressed="true">RU</button>
           <button type="button" data-lang="en" aria-pressed="false">EN</button>
@@ -2480,17 +2512,14 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       <button class="nav-link is-active" data-view="guides">
         <span class="nav-label" data-i18n="nav_guides">Инструкции</span>
       </button>
-      <button class="nav-link" data-view="chat">
-        <span class="nav-label" data-i18n="nav_chat">Чат</span>
+      <button class="nav-link nav-chat" data-view="chat">
+        <span class="nav-label" data-i18n="nav_chat">Чат</span><span class="nav-beta">BETA</span>
       </button>
       <button class="nav-link" data-view="models">
         <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">34</span>
       </button>
       <button class="nav-link" data-view="usage">
         <span class="nav-label" data-i18n="nav_usage">История</span>
-      </button>
-      <button class="nav-link" data-view="faq">
-        <span class="nav-label" data-i18n="nav_faq">FAQ</span>
       </button>
     </nav>
 
@@ -5498,6 +5527,7 @@ async function sendChatMessage() {
 
 function setView(view) {
   $$('.nav-link').forEach(button => button.classList.toggle('is-active', button.dataset.view === view));
+  $$('.header-faq[data-view]').forEach(button => button.classList.toggle('is-active', button.dataset.view === view));
   $$('.view').forEach(panel => panel.classList.toggle('is-active', panel.id === `${view}View`));
   window.scrollTo({ top: 0, behavior: 'smooth' });
   if (view === 'usage' && state.apiKey) {
@@ -5724,6 +5754,7 @@ async function init() {
     showKeyStage();
   });
   $$('.nav-link[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
+  $$('.header-faq[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
   $('#usageRefresh').addEventListener('click', () => refreshUsage(false));
   $('#modelSearch').addEventListener('input', event => renderModels(event.target.value));
   $('#chatForm').addEventListener('submit', event => { event.preventDefault(); sendChatMessage(); });
