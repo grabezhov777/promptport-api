@@ -2048,6 +2048,91 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 }
 
 /* Request usage history */
+.chat-view { width:min(1380px,calc(100% - 48px)); padding-top:34px; }
+.chat-layout {
+  height:calc(100dvh - 130px);
+  min-height:610px;
+  display:grid;
+  grid-template-columns:252px minmax(0,1fr);
+  overflow:hidden;
+  border-radius:30px;
+  background:linear-gradient(145deg,rgba(255,255,255,.07),rgba(255,255,255,.028));
+  box-shadow:inset 0 0 0 1px rgba(205,241,218,.1),inset 0 1px 1px rgba(255,255,255,.16),0 24px 70px rgba(0,0,0,.32);
+  backdrop-filter:blur(28px);
+  -webkit-backdrop-filter:blur(28px);
+}
+.chat-sidebar { min-width:0; padding:16px; display:flex; flex-direction:column; background:rgba(0,0,0,.16); box-shadow:inset -1px 0 0 rgba(255,255,255,.065); }
+.chat-new,.chat-clear,.chat-tool,.chat-send {
+  border:0;
+  color:#e8f8ee;
+  cursor:pointer;
+  transition:transform .2s,background .2s,opacity .2s,box-shadow .2s;
+}
+.chat-new { min-height:48px; padding:0 16px; display:flex; align-items:center; justify-content:space-between; border-radius:15px; background:rgba(79,185,117,.14); box-shadow:inset 0 1px 1px rgba(220,255,232,.14); font:500 11px/1 var(--sans); }
+.chat-new:hover { transform:translateY(-1px); background:rgba(79,185,117,.22); }
+.chat-new b { font:300 22px/1 var(--sans); }
+.chat-history-label { margin:24px 8px 10px; color:rgba(190,239,208,.48); font:8px/1 var(--mono); letter-spacing:.14em; text-transform:uppercase; }
+.chat-history { min-height:0; flex:1; overflow:auto; display:flex; flex-direction:column; gap:5px; scrollbar-width:thin; }
+.chat-history-item { width:100%; min-height:48px; border:0; padding:9px 11px; display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:8px; border-radius:13px; background:transparent; color:rgba(255,255,255,.58); cursor:pointer; text-align:left; }
+.chat-history-item:hover { background:rgba(255,255,255,.045); color:rgba(255,255,255,.84); }
+.chat-history-item.is-active { background:rgba(79,185,117,.11); color:#e1f6e8; box-shadow:inset 2px 0 0 rgba(143,211,169,.8); }
+.chat-history-item span { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; font-size:11px; }
+.chat-history-item small { color:rgba(255,255,255,.32); font:8px/1 var(--mono); }
+.chat-privacy { margin:14px 5px 2px; display:flex; gap:8px; color:rgba(255,255,255,.35); font:8px/1.45 var(--mono); }
+.chat-privacy i { width:7px; height:7px; margin-top:2px; flex:0 0 7px; border-radius:50%; background:#8fd3a9; box-shadow:0 0 10px rgba(79,185,117,.5); }
+.chat-main { min-width:0; display:grid; grid-template-rows:auto minmax(0,1fr) auto; }
+.chat-topbar { min-height:76px; padding:12px 18px; display:flex; align-items:center; gap:10px; box-shadow:inset 0 -1px 0 rgba(255,255,255,.07); }
+.chat-select-wrap { min-width:0; position:relative; }
+.chat-select-wrap:first-child { flex:1; max-width:360px; }
+.chat-select-wrap label { display:block; margin:0 0 6px 4px; color:rgba(255,255,255,.36); font:7px/1 var(--mono); letter-spacing:.12em; text-transform:uppercase; }
+.chat-select { width:100%; height:37px; border:0; padding:0 34px 0 12px; border-radius:11px; outline:none; appearance:none; background:rgba(255,255,255,.065); color:rgba(255,255,255,.9); box-shadow:inset 0 1px 1px rgba(255,255,255,.11); font:500 10px/1 var(--sans); cursor:pointer; }
+.chat-select option { color:#efefef; background:#111; }
+.chat-select-wrap::after { content:'⌄'; position:absolute; right:12px; bottom:11px; color:rgba(190,239,208,.65); pointer-events:none; font-size:11px; }
+.chat-clear { width:37px; height:37px; margin:17px 0 0 auto; border-radius:11px; display:grid; place-items:center; background:rgba(255,255,255,.055); color:rgba(255,255,255,.48); }
+.chat-clear:hover { color:#ff9ca2; background:rgba(255,82,92,.1); }
+.chat-clear svg,.chat-tool svg,.chat-send svg { width:17px; height:17px; fill:none; stroke:currentColor; stroke-width:1.7; stroke-linecap:round; stroke-linejoin:round; }
+.chat-messages { min-height:0; overflow-y:auto; overscroll-behavior:contain; padding:26px clamp(18px,4vw,64px); scrollbar-width:thin; }
+.chat-empty { height:100%; min-height:300px; display:grid; place-items:center; text-align:center; }
+.chat-empty>div { max-width:520px; }
+.chat-empty-mark { width:58px; height:58px; margin:0 auto 20px; display:grid; place-items:center; border-radius:20px; background:rgba(79,185,117,.12); color:#bceccd; box-shadow:inset 0 1px 1px rgba(220,255,232,.18),0 12px 34px rgba(24,87,47,.18); font:500 20px/1 var(--mono); }
+.chat-empty h2 { margin:0; font-size:clamp(25px,3vw,38px); font-weight:500; letter-spacing:-.035em; }
+.chat-empty p { margin:13px auto 0; color:rgba(255,255,255,.5); font-size:13px; line-height:1.65; }
+.chat-message { width:min(800px,100%); margin:0 auto 22px; display:grid; grid-template-columns:34px minmax(0,1fr); gap:13px; }
+.chat-avatar { width:34px; height:34px; display:grid; place-items:center; border-radius:11px; color:#bceccd; background:rgba(79,185,117,.11); box-shadow:inset 0 0 0 1px rgba(143,211,169,.17); font:600 8px/1 var(--mono); }
+.chat-message.is-user .chat-avatar { color:#fff; background:rgba(255,255,255,.09); }
+.chat-message-body { min-width:0; padding-top:5px; color:rgba(255,255,255,.86); font-size:14px; line-height:1.72; overflow-wrap:anywhere; }
+.chat-message-body p { margin:0 0 12px; }
+.chat-message-body p:last-child { margin-bottom:0; }
+.chat-message-body pre { margin:14px 0; overflow:auto; padding:16px; border-radius:14px; background:rgba(0,0,0,.29); box-shadow:inset 0 0 0 1px rgba(255,255,255,.07); }
+.chat-message-body code { font:11px/1.6 var(--mono); color:#c9f1d7; }
+.chat-message-body:not(:has(pre)) code { padding:2px 5px; border-radius:5px; background:rgba(79,185,117,.1); }
+.chat-message.is-user .chat-message-body { padding:12px 15px; border-radius:4px 17px 17px 17px; background:rgba(255,255,255,.065); box-shadow:inset 0 1px 1px rgba(255,255,255,.1); }
+.chat-message-meta { margin-top:9px; display:flex; gap:10px; color:rgba(255,255,255,.3); font:8px/1.4 var(--mono); }
+.chat-message-files { margin-top:10px; display:flex; flex-wrap:wrap; gap:7px; }
+.chat-message-file { max-width:220px; padding:7px 9px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; border-radius:9px; color:rgba(211,244,222,.72); background:rgba(79,185,117,.09); font:8px/1 var(--mono); }
+.chat-thinking { display:inline-flex; gap:5px; padding-top:8px; }
+.chat-thinking i { width:5px; height:5px; border-radius:50%; background:#9fe0b7; animation:chat-pulse 1.1s ease-in-out infinite; }
+.chat-thinking i:nth-child(2) { animation-delay:.15s; }.chat-thinking i:nth-child(3) { animation-delay:.3s; }
+@keyframes chat-pulse { 0%,70%,100%{opacity:.25;transform:translateY(0)} 35%{opacity:1;transform:translateY(-3px)} }
+.chat-error { width:min(800px,100%); margin:0 auto 18px; padding:12px 14px; border-radius:13px; color:#ffb1b5; background:rgba(255,82,92,.1); box-shadow:inset 0 0 0 1px rgba(255,106,115,.22); font:10px/1.55 var(--mono); }
+.chat-composer-area { padding:12px clamp(14px,3vw,34px) 18px; background:linear-gradient(180deg,transparent,rgba(0,0,0,.13)); }
+.chat-attachments { width:min(860px,100%); margin:0 auto 8px; display:flex; gap:7px; overflow-x:auto; }
+.chat-attachment { max-width:230px; padding:7px 8px 7px 10px; display:flex; align-items:center; gap:7px; border-radius:10px; background:rgba(79,185,117,.1); color:rgba(225,248,233,.75); font:8px/1 var(--mono); white-space:nowrap; }
+.chat-attachment span { overflow:hidden; text-overflow:ellipsis; }
+.chat-attachment button { border:0; padding:0; background:none; color:rgba(255,255,255,.42); cursor:pointer; font-size:15px; }
+.chat-composer { width:min(860px,100%); min-height:60px; margin:0 auto; padding:8px; display:grid; grid-template-columns:40px minmax(0,1fr) 44px; align-items:end; gap:5px; border-radius:21px; background:rgba(255,255,255,.075); box-shadow:inset 0 0 0 1px rgba(205,241,218,.1),inset 0 1px 1px rgba(255,255,255,.15),0 14px 38px rgba(0,0,0,.22); backdrop-filter:blur(24px); -webkit-backdrop-filter:blur(24px); }
+.chat-composer:focus-within { box-shadow:inset 0 0 0 1px rgba(143,211,169,.32),inset 0 1px 1px rgba(255,255,255,.16),0 16px 44px rgba(0,0,0,.25); }
+.chat-tool,.chat-send { width:40px; height:40px; display:grid; place-items:center; border-radius:14px; background:transparent; color:rgba(255,255,255,.55); }
+.chat-tool:hover { background:rgba(255,255,255,.07); color:#dff8e8; }
+.chat-send { width:44px; height:44px; background:rgba(79,185,117,.22); color:#e5f8eb; box-shadow:inset 0 1px 1px rgba(220,255,232,.17); }
+.chat-send:hover { transform:scale(1.04); background:rgba(79,185,117,.32); }
+.chat-send:disabled { opacity:.35; cursor:not-allowed; transform:none; }
+.chat-send.is-stop { background:rgba(255,82,92,.15); color:#ffb1b5; }
+.chat-input { width:100%; max-height:160px; min-height:40px; border:0; padding:10px 7px 7px; resize:none; outline:none; overflow-y:auto; background:transparent; color:#fff; font:13px/1.5 var(--sans); }
+.chat-input::placeholder { color:rgba(255,255,255,.32); }
+.chat-composer-note { width:min(860px,100%); margin:8px auto 0; color:rgba(255,255,255,.3); text-align:center; font:8px/1.45 var(--mono); }
+.chat-file-input { display:none; }
+
 .usage-toolbar { display:flex; align-items:center; justify-content:space-between; gap:18px; margin-bottom:20px; }
 .usage-updated { color:rgba(255,255,255,.48); font:9px/1.5 var(--mono); letter-spacing:.08em; }
 .usage-refresh { min-height:42px; border:0; padding:0 16px; display:inline-flex; align-items:center; gap:9px; border-radius:14px; background:rgba(79,185,117,.11); color:#dff8e8; box-shadow:inset 0 1px 1px rgba(220,255,232,.16); font:500 10px/1 var(--sans); cursor:pointer; transition:background .2s,transform .2s,opacity .2s; }
@@ -2135,7 +2220,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
     transform:none;
     bottom:max(10px,env(safe-area-inset-bottom));
     display:grid;
-    grid-template-columns:repeat(5,minmax(0,1fr));
+    grid-template-columns:repeat(6,minmax(0,1fr));
     overflow:visible;
   }
   .nav-link {
@@ -2147,6 +2232,13 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .nav-link span { margin-left:3px; }
 
   .view { padding-bottom:35px; }
+  .chat-view { width:calc(100% - 20px); padding-top:82px; }
+  .chat-layout { height:calc(100dvh - 182px); min-height:520px; grid-template-columns:1fr; border-radius:22px; }
+  .chat-sidebar { display:none; }
+  .chat-topbar { min-height:70px; padding:10px 11px; }
+  .chat-select-wrap:first-child { max-width:none; }
+  .chat-messages { padding:20px 14px; }
+  .chat-composer-area { padding:9px 9px 12px; }
   .workspace,.client-sidebar,.client-list,.guide-panel {
     min-width:0;
     width:100%;
@@ -2215,7 +2307,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .language-switch { height:44px; padding:3px; }
   .language-switch button { width:33px; height:36px; }
   .main-nav { left:8px; right:8px; height:60px; padding:5px; border-radius:20px; }
-  .nav-link { height:50px; font-size:9px; }
+  .nav-link { height:50px; padding-inline:2px; font-size:8px; }
   .nav-link #modelCount { font-size:8px; }
 
   .view { width:calc(100% - 20px); padding-top:82px; }
@@ -2269,6 +2361,17 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .usage-row-head { grid-template-columns:minmax(0,1fr) auto; gap:12px; padding:16px; }
   .usage-row-meta { grid-column:1/-1; justify-content:flex-start; }
   .usage-row-details { grid-template-columns:repeat(2,minmax(0,1fr)); padding:0 16px 16px; }
+  .chat-layout { height:calc(100dvh - 172px); }
+  .chat-topbar { gap:6px; }
+  .chat-select-wrap label { display:none; }
+  .chat-select-wrap::after { bottom:13px; }
+  .chat-select { height:40px; padding-left:9px; font-size:9px; }
+  .chat-clear { margin-top:0; width:40px; height:40px; }
+  .chat-message { grid-template-columns:29px minmax(0,1fr); gap:9px; margin-bottom:18px; }
+  .chat-avatar { width:29px; height:29px; border-radius:9px; }
+  .chat-message-body { font-size:13px; line-height:1.65; }
+  .chat-composer { grid-template-columns:38px minmax(0,1fr) 42px; border-radius:18px; }
+  .chat-tool { width:38px; }.chat-send { width:42px; height:42px; }
 }
 
 @media (max-width:350px) {
@@ -2377,6 +2480,9 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       <button class="nav-link is-active" data-view="guides">
         <span class="nav-label" data-i18n="nav_guides">Инструкции</span>
       </button>
+      <button class="nav-link" data-view="chat">
+        <span class="nav-label" data-i18n="nav_chat">Чат</span>
+      </button>
       <button class="nav-link" data-view="models">
         <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">34</span>
       </button>
@@ -2441,6 +2547,56 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
             <p data-i18n="loading_guides">Читаем инструкции…</p>
           </div>
         </article>
+      </div>
+    </section>
+
+    <section class="view chat-view" id="chatView">
+      <div class="chat-layout">
+        <aside class="chat-sidebar">
+          <button class="chat-new" id="chatNew" type="button"><span data-i18n="chat_new">Новый чат</span><b>+</b></button>
+          <span class="chat-history-label" data-i18n="chat_history">Диалоги в этой вкладке</span>
+          <div class="chat-history" id="chatHistory"></div>
+          <p class="chat-privacy"><i></i><span data-i18n="chat_privacy">Ключ и вложения не сохраняются после закрытия вкладки</span></p>
+        </aside>
+
+        <div class="chat-main">
+          <header class="chat-topbar">
+            <div class="chat-select-wrap">
+              <label for="chatModel" data-i18n="chat_model">Модель</label>
+              <select class="chat-select" id="chatModel" aria-label="Модель"></select>
+            </div>
+            <div class="chat-select-wrap">
+              <label for="chatEffort" data-i18n="chat_effort">Effort</label>
+              <select class="chat-select" id="chatEffort" aria-label="Effort">
+                <option value="auto" data-i18n="chat_effort_auto">Авто</option>
+                <option value="low">Low</option>
+                <option value="medium">Medium</option>
+                <option value="high">High</option>
+                <option value="max">Max</option>
+              </select>
+            </div>
+            <button class="chat-clear" id="chatClear" type="button" data-i18n-title="chat_clear" title="Очистить чат" aria-label="Очистить чат">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 6h18M8 6V4h8v2m-9 0 1 14h8l1-14M10 10v6m4-6v6"/></svg>
+            </button>
+          </header>
+
+          <div class="chat-messages" id="chatMessages" aria-live="polite"></div>
+
+          <div class="chat-composer-area">
+            <div class="chat-attachments" id="chatAttachments"></div>
+            <form class="chat-composer" id="chatForm">
+              <button class="chat-tool" id="chatAttach" type="button" data-i18n-title="chat_attach" title="Добавить фото или файл" aria-label="Добавить фото или файл">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m21.4 11.6-8.9 8.9a6 6 0 0 1-8.5-8.5l9.2-9.2a4 4 0 0 1 5.7 5.7l-9.2 9.2a2 2 0 0 1-2.8-2.8l8.5-8.5"/></svg>
+              </button>
+              <textarea class="chat-input" id="chatInput" rows="1" data-i18n-placeholder="chat_placeholder" placeholder="Напишите сообщение…"></textarea>
+              <button class="chat-send" id="chatSend" type="submit" data-i18n-title="chat_send" title="Отправить" aria-label="Отправить">
+                <svg class="chat-send-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/></svg>
+              </button>
+            </form>
+            <input class="chat-file-input" id="chatFileInput" type="file" multiple accept="image/png,image/jpeg,image/webp,image/gif,.txt,.md,.json,.csv,.js,.ts,.tsx,.jsx,.py,.java,.c,.cpp,.h,.css,.html,.xml,.yaml,.yml,.toml,.log,.pdf">
+            <p class="chat-composer-note" id="chatComposerNote" data-i18n="chat_note">Enter — отправить · Shift+Enter — новая строка · до 4 файлов</p>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -3694,6 +3850,7 @@ INGC0L7QttC1INGB0LDQvNC+0LUsINGH0YLQviBjb2RleCB2c2MiLCJhdXRvbWF0aWMiOiJiYXNoIDwo
 b2RlLnJ1L2knKSAn0JLQkNCoX0FQSV/QmtCb0K7QpycifV19
   </script>
 
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js" crossorigin="anonymous"></script>
   <script>
 // === 3D TORUS ANIMATION ===
 (function() {
@@ -3934,6 +4091,11 @@ const safeStorage = {
   setItem: (key, value) => { try { localStorage.setItem(key, value); } catch {} },
   removeItem: key => { try { localStorage.removeItem(key); } catch {} }
 };
+const safeSession = {
+  getItem: key => { try { return sessionStorage.getItem(key); } catch { return null; } },
+  setItem: (key, value) => { try { sessionStorage.setItem(key, value); } catch {} },
+  removeItem: key => { try { sessionStorage.removeItem(key); } catch {} }
+};
 
 const state = {
   language: safeStorage.getItem('cerberus_language') || 'ru',
@@ -3944,11 +4106,13 @@ const state = {
   activeApp: null,
   balance: { status: 'idle', value: null, errorKey: '', serverMessage: '', updatedAt: null, refreshing: false },
   usage: { status: 'idle', logs: [], total: 0, updatedAt: null, errorType: '' },
-  modelsUpdatedAt: null
+  modelsUpdatedAt: null,
+  chat: { conversations: [], activeId: null, attachments: [], generating: false, controller: null }
 };
 safeStorage.removeItem('cerberus_api_key');
 const BALANCE_API_ENDPOINT = 'https://api-token.alexgamer7307.workers.dev?v=3';
 const MODELS_PROXY_ENDPOINT = 'https://prompt-port-models.alexgamer7307.workers.dev?v=1';
+const CHAT_API_ENDPOINT = 'https://prompt-port-chat.alexgamer7307.workers.dev?v=2';
 const BALANCE_ATTEMPT_TIMEOUT_MS = 8000;
 const MODELS_TIMEOUT_MS = 12000;
 const MODELS_INITIAL_TIMEOUT_MS = 6000;
@@ -3958,6 +4122,10 @@ const BALANCE_RETRY_DELAY_MS = 900;
 const BALANCE_BACKGROUND_RETRY_MS = 6000;
 const USAGE_REFRESH_INTERVAL_MS = 30000;
 const USAGE_TIMEOUT_MS = 10000;
+const CHAT_MAX_FILES = 4;
+const CHAT_MAX_IMAGE_BYTES = 3 * 1024 * 1024;
+const CHAT_MAX_TEXT_BYTES = 1024 * 1024;
+const CHAT_MAX_CONTEXT_CHARS = 280000;
 let balanceRequestId = 0;
 let balanceAbortController = null;
 let balanceRetryTimer = null;
@@ -3978,11 +4146,12 @@ const i18n = {
     showcase_kicker: 'Один ключ · все модели', showcase_title: 'Контролируйте доступ к <em>AI-моделям</em> в одном месте', showcase_copy: 'Проверка ключа, актуальный баланс, доступные модели и готовые инструкции для популярных AI-клиентов.',
     showcase_step1: 'Вставь ключ', showcase_step2: 'Подключи ключ', showcase_step3: 'Используй лучшие ИИ', showcase_privacy: 'Ключ хранится только в текущей вкладке', key_checking: 'Проверяем…', key_check_failed: 'Не удалось проверить ключ. Проверьте интернет-соединение и правильность API-ключа, затем попробуйте снова.',
     os_step: '02 / рабочая система', choose_os: 'Где вы будете работать?', os_intro: 'Откроем нужный раздел сразу. Переключиться можно в любой момент.',
-    nav_guides: 'Инструкции', nav_models: 'Модели', nav_usage: 'История', nav_buy: 'Приобрести', nav_faq: 'FAQ', route: 'Маршрут', route_primary: 'Основной', route_backup: 'Резервный',
+    nav_guides: 'Инструкции', nav_chat: 'Чат', nav_models: 'Модели', nav_usage: 'История', nav_buy: 'Приобрести', nav_faq: 'FAQ', route: 'Маршрут', route_primary: 'Основной', route_backup: 'Резервный',
     quick_start: 'Быстрый старт', client_setup: 'Настройка клиентов', client_intro: 'Выберите систему и приложение. Готовый ключ уже подставлен в команды.',
     available_balance: 'Доступный баланс', tokens: 'токенов', clients: 'Клиенты', loading_guides: 'Читаем инструкции…',
     catalog: 'Каталог', model_coefficients: 'Коэффициенты моделей', coefficients_intro: 'Актуальные коэффициенты списания для всех поддерживаемых моделей.',
     model: 'Модель', provider: 'Провайдер', coefficient: 'Коэффициент', model_status: 'Статус', model_available: 'Работает', model_degraded: 'Нестабильно', model_unavailable: 'Недоступна', model_unknown: 'Не проверено', copied: 'Скопировано', search: 'Найти модель',
+    chat_new: 'Новый чат', chat_history: 'Диалоги в этой вкладке', chat_privacy: 'Ключ и вложения не сохраняются после закрытия вкладки', chat_model: 'Модель', chat_effort: 'Effort', chat_effort_auto: 'Авто', chat_clear: 'Очистить чат', chat_attach: 'Добавить фото или файл', chat_send: 'Отправить', chat_stop: 'Остановить', chat_placeholder: 'Напишите сообщение…', chat_note: 'Enter — отправить · Shift+Enter — новая строка · до 4 файлов', chat_empty_title: 'Чем займёмся?', chat_empty_text: 'Выберите модель, задайте уровень рассуждения и отправьте сообщение. Можно приложить изображение, PDF, текст или код.', chat_untitled: 'Новый диалог', chat_you: 'Вы', chat_assistant: 'ИИ', chat_tokens_used: 'токенов', chat_no_key: 'Сначала введите и проверьте API-ключ.', chat_empty_message: 'Напишите сообщение или добавьте файл.', chat_file_limit: 'Можно прикрепить не больше 4 файлов.', chat_image_large: 'Изображение слишком большое. Максимум — 3 МБ.', chat_file_large: 'Файл слишком большой. Максимум — 1 МБ.', chat_file_unsupported: 'Этот формат файла пока не поддерживается.', chat_pdf_unavailable: 'Не удалось прочитать PDF. Попробуйте TXT или Markdown.', chat_file_read_error: 'Не удалось прочитать файл.', chat_vision_hint: 'Если модель не поддерживает изображения, выберите vision-модель.', chat_error_generic: 'Не удалось получить ответ. Проверьте соединение или выберите другую модель.', chat_error_401: 'API-ключ отклонён. Проверьте ключ и попробуйте снова.', chat_error_402: 'На ключе недостаточно токенов для этого запроса.', chat_error_429: 'Слишком много запросов. Немного подождите и повторите.', chat_error_503: 'Модель временно перегружена. Повторите позже или выберите другую.', chat_stopped: 'Генерация остановлена', chat_clear_confirm: 'Очистить текущий диалог?', chat_attach_count: '{count} влож.',
     change_key: 'Изменить API-ключ', copy: 'Копировать', done: 'Готово', auto_install: 'Автоматическая установка', remove_key: 'Удаление ключа',
     auto_note: 'Скопируйте и выполните одну команду в терминале.', auto_note_windows: 'Скопируйте и выполните одну команду в powershell.',
     remove_note: 'Закройте приложение и запустите команду. Она уберёт настройки подключения с этого устройства. Сам API-ключ останется активным — его можно будет подключить снова.',
@@ -4019,11 +4188,12 @@ const i18n = {
     showcase_kicker: 'One key · every model', showcase_title: 'Control access to <em>AI models</em> in one place', showcase_copy: 'Key validation, current balance, available models and ready-to-use setup guides for popular AI clients.',
     showcase_step1: 'Paste your key', showcase_step2: 'Connect the key', showcase_step3: 'Use the best AI', showcase_privacy: 'The key lives only in the current tab', key_checking: 'Checking…', key_check_failed: 'Could not verify the key. Check your connection and make sure the API key is correct, then try again.',
     os_step: '02 / operating system', choose_os: 'Where will you work?', os_intro: 'We will open the relevant section first. You can switch at any time.',
-    nav_guides: 'Guides', nav_models: 'Models', nav_usage: 'History', nav_buy: 'Purchase', nav_faq: 'FAQ', route: 'Route', route_primary: 'Primary', route_backup: 'Backup',
+    nav_guides: 'Guides', nav_chat: 'Chat', nav_models: 'Models', nav_usage: 'History', nav_buy: 'Purchase', nav_faq: 'FAQ', route: 'Route', route_primary: 'Primary', route_backup: 'Backup',
     quick_start: 'Quick start', client_setup: 'Client setup', client_intro: 'Choose an operating system and an app. Your key is already inserted into the commands.',
     available_balance: 'Available balance', tokens: 'tokens', clients: 'Clients', loading_guides: 'Loading guides…',
     catalog: 'Catalog', model_coefficients: 'Model coefficients', coefficients_intro: 'Current usage coefficients for every supported model.',
     model: 'Model', provider: 'Provider', coefficient: 'Coefficient', model_status: 'Status', model_available: 'Operational', model_degraded: 'Unstable', model_unavailable: 'Unavailable', model_unknown: 'Not checked', copied: 'Copied', search: 'Find a model',
+    chat_new: 'New chat', chat_history: 'Chats in this tab', chat_privacy: 'The key and attachments disappear when this tab is closed', chat_model: 'Model', chat_effort: 'Effort', chat_effort_auto: 'Auto', chat_clear: 'Clear chat', chat_attach: 'Add an image or file', chat_send: 'Send', chat_stop: 'Stop', chat_placeholder: 'Write a message…', chat_note: 'Enter to send · Shift+Enter for a new line · up to 4 files', chat_empty_title: 'What can I help with?', chat_empty_text: 'Choose a model and reasoning effort, then send a message. You can attach an image, PDF, text, or code.', chat_untitled: 'New chat', chat_you: 'You', chat_assistant: 'AI', chat_tokens_used: 'tokens', chat_no_key: 'Enter and verify an API key first.', chat_empty_message: 'Write a message or add a file.', chat_file_limit: 'You can attach up to 4 files.', chat_image_large: 'The image is too large. Maximum size is 3 MB.', chat_file_large: 'The file is too large. Maximum size is 1 MB.', chat_file_unsupported: 'This file format is not supported yet.', chat_pdf_unavailable: 'Could not read this PDF. Try TXT or Markdown.', chat_file_read_error: 'Could not read this file.', chat_vision_hint: 'If the model does not support images, choose a vision model.', chat_error_generic: 'Could not get a response. Check your connection or choose another model.', chat_error_401: 'The API key was rejected. Check the key and try again.', chat_error_402: 'This key does not have enough tokens for the request.', chat_error_429: 'Too many requests. Wait briefly and try again.', chat_error_503: 'The model is temporarily overloaded. Retry later or choose another model.', chat_stopped: 'Generation stopped', chat_clear_confirm: 'Clear the current chat?', chat_attach_count: '{count} attachments',
     change_key: 'Change API key', copy: 'Copy', done: 'Done', auto_install: 'Automatic installation', remove_key: 'Remove API key',
     auto_note: 'Copy and run this command in your terminal.', auto_note_windows: 'Copy and run this command in PowerShell.',
     remove_note: 'Close the app and run the command. It removes the connection settings from this device. The API key stays active and can be connected again later.',
@@ -4202,6 +4372,7 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
         state.modelsUpdatedAt = Date.now();
         console.log(`✓ Загружено ${models.length} моделей с API`);
         renderModels($('#modelSearch')?.value || '');
+        renderChatModels();
         const modelCount = $('#modelCount');
         if (modelCount) modelCount.textContent = String(models.length);
         return true;
@@ -4230,6 +4401,7 @@ function stopModelsAutoUpdate(resetStatus = true) {
     models = models.map(([name, provider, coefficient]) => [name, provider, coefficient, 'unknown']);
     state.modelsUpdatedAt = null;
     renderModels($('#modelSearch')?.value || '');
+    renderChatModels();
   }
 }
 
@@ -4786,6 +4958,11 @@ function applyLanguage() {
   document.title = t('title');
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
   $$('[data-i18n-html]').forEach(element => { element.innerHTML = t(element.dataset.i18nHtml); });
+  $$('[data-i18n-placeholder]').forEach(element => { element.placeholder = t(element.dataset.i18nPlaceholder); });
+  $$('[data-i18n-title]').forEach(element => {
+    element.title = t(element.dataset.i18nTitle);
+    element.setAttribute('aria-label', element.title);
+  });
   $$('[data-lang]').forEach(button => {
     const active = button.dataset.lang === state.language;
     button.classList.toggle('is-active', active);
@@ -4798,6 +4975,7 @@ function applyLanguage() {
   if (modelCount) modelCount.textContent = String(models.length);
   renderBalance();
   renderUsage();
+  renderChat();
   if (state.activeApp) renderGuide();
 }
 
@@ -4959,6 +5137,365 @@ function renderModels(query = '') {
   }).join('') : `<div class="no-models">${t('no_models')}</div>`;
 }
 
+// === AI CHAT ===
+const CHAT_SESSION_KEY = 'prompt_port_chat_v1';
+
+function createChatId() {
+  return (crypto.randomUUID?.() || `${Date.now()}-${Math.random().toString(16).slice(2)}`).replace(/[^a-zA-Z0-9-]/g, '');
+}
+
+function createConversation(makeActive = true) {
+  const conversation = {
+    id: createChatId(),
+    title: t('chat_untitled'),
+    model: $('#chatModel')?.value || 'gpt-5.6-terra',
+    effort: $('#chatEffort')?.value || 'auto',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    messages: []
+  };
+  state.chat.conversations.unshift(conversation);
+  if (makeActive) state.chat.activeId = conversation.id;
+  state.chat.attachments = [];
+  saveChatState();
+  return conversation;
+}
+
+function activeConversation() {
+  return state.chat.conversations.find(conversation => conversation.id === state.chat.activeId) || state.chat.conversations[0] || createConversation();
+}
+
+function restoreChatState() {
+  try {
+    const saved = JSON.parse(safeSession.getItem(CHAT_SESSION_KEY) || '{}');
+    if (Array.isArray(saved.conversations)) {
+      state.chat.conversations = saved.conversations.slice(0, 12).map(conversation => ({
+        id: String(conversation.id || createChatId()),
+        title: String(conversation.title || t('chat_untitled')).slice(0, 80),
+        model: String(conversation.model || 'gpt-5.6-terra'),
+        effort: ['auto', 'low', 'medium', 'high', 'max'].includes(conversation.effort) ? conversation.effort : 'auto',
+        createdAt: Number(conversation.createdAt) || Date.now(),
+        updatedAt: Number(conversation.updatedAt) || Date.now(),
+        messages: Array.isArray(conversation.messages) ? conversation.messages.slice(-60).filter(message => ['user', 'assistant'].includes(message.role)).map(message => ({
+          id: String(message.id || createChatId()),
+          role: message.role,
+          text: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
+          apiContent: String(message.text || '').slice(0, CHAT_MAX_CONTEXT_CHARS),
+          files: Array.isArray(message.files) ? message.files.slice(0, CHAT_MAX_FILES).map(file => ({ name: String(file.name || ''), kind: String(file.kind || 'file') })) : [],
+          createdAt: Number(message.createdAt) || Date.now(),
+          usage: message.usage && typeof message.usage === 'object' ? message.usage : null
+        })) : []
+      }));
+      state.chat.activeId = state.chat.conversations.some(item => item.id === saved.activeId) ? saved.activeId : state.chat.conversations[0]?.id || null;
+    }
+  } catch {}
+  if (!state.chat.conversations.length) createConversation();
+}
+
+function saveChatState() {
+  const conversations = state.chat.conversations.slice(0, 12).map(conversation => ({
+    ...conversation,
+    messages: conversation.messages.slice(-60).map(message => ({
+      id: message.id,
+      role: message.role,
+      text: message.text,
+      files: message.files || [],
+      createdAt: message.createdAt,
+      usage: message.usage || null
+    }))
+  }));
+  safeSession.setItem(CHAT_SESSION_KEY, JSON.stringify({ activeId: state.chat.activeId, conversations }));
+}
+
+function formatChatTime(timestamp) {
+  return new Intl.DateTimeFormat(state.language === 'ru' ? 'ru-RU' : 'en-US', { hour: '2-digit', minute: '2-digit' }).format(new Date(timestamp));
+}
+
+function renderChatMarkdown(value) {
+  const codeBlocks = [];
+  let safe = escapeHtml(String(value || '')).replace(/```([^\n]*)\n?([\s\S]*?)```/g, (_, language, code) => {
+    const token = `%%CODEBLOCK${codeBlocks.length}%%`;
+    codeBlocks.push(`<pre><code${language ? ` data-language="${escapeHtml(language.trim())}"` : ''}>${code.trim()}</code></pre>`);
+    return token;
+  });
+  safe = safe
+    .replace(/`([^`\n]+)`/g, '<code>$1</code>')
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/(^|\s)\*([^*\n]+)\*/g, '$1<em>$2</em>')
+    .split(/\n{2,}/)
+    .map(block => /^%%CODEBLOCK\d+%%$/.test(block.trim()) ? block.trim() : `<p>${block.replace(/\n/g, '<br>')}</p>`)
+    .join('');
+  codeBlocks.forEach((block, index) => { safe = safe.replace(`%%CODEBLOCK${index}%%`, block); });
+  return safe || '';
+}
+
+function renderChatModels() {
+  const select = $('#chatModel');
+  if (!select) return;
+  const conversation = activeConversation();
+  const previous = conversation.model || select.value || 'gpt-5.6-terra';
+  select.innerHTML = models.map(([id, provider, , status = 'unknown']) => {
+    const statusLabel = status === 'unavailable' ? ` · ${t('model_unavailable')}` : status === 'degraded' ? ` · ${t('model_degraded')}` : '';
+    return `<option value="${escapeHtml(id)}">${escapeHtml(formatModelName(id))} · ${escapeHtml(provider)}${escapeHtml(statusLabel)}</option>`;
+  }).join('');
+  select.value = models.some(([id]) => id === previous) ? previous : (models.find(([, , , status]) => status === 'available')?.[0] || models[0]?.[0] || 'gpt-5.6-terra');
+  conversation.model = select.value;
+  $('#chatEffort').value = conversation.effort || 'auto';
+}
+
+function renderChatHistory() {
+  const history = $('#chatHistory');
+  if (!history) return;
+  history.innerHTML = state.chat.conversations.map(conversation => `
+    <button class="chat-history-item ${conversation.id === state.chat.activeId ? 'is-active' : ''}" type="button" data-chat-id="${escapeHtml(conversation.id)}">
+      <span>${escapeHtml(conversation.title || t('chat_untitled'))}</span><small>${formatChatTime(conversation.updatedAt)}</small>
+    </button>`).join('');
+}
+
+function renderChatAttachments() {
+  const container = $('#chatAttachments');
+  if (!container) return;
+  container.innerHTML = state.chat.attachments.map(file => `
+    <span class="chat-attachment"><span>${file.kind === 'image' ? '▧' : '≡'} ${escapeHtml(file.name)}</span><button type="button" data-remove-attachment="${escapeHtml(file.id)}" aria-label="Remove">×</button></span>`).join('');
+}
+
+function renderChat() {
+  const container = $('#chatMessages');
+  if (!container) return;
+  const conversation = activeConversation();
+  renderChatHistory();
+  renderChatModels();
+  renderChatAttachments();
+
+  if (!conversation.messages.length && !state.chat.error) {
+    container.innerHTML = `<div class="chat-empty"><div><div class="chat-empty-mark">AI</div><h2>${escapeHtml(t('chat_empty_title'))}</h2><p>${escapeHtml(t('chat_empty_text'))}</p></div></div>`;
+  } else {
+    container.innerHTML = conversation.messages.map(message => {
+      const files = message.files?.length ? `<div class="chat-message-files">${message.files.map(file => `<span class="chat-message-file">${file.kind === 'image' ? '▧' : '≡'} ${escapeHtml(file.name)}</span>`).join('')}</div>` : '';
+      const usage = message.usage?.total_tokens != null ? `<span>${formatNumber(message.usage.total_tokens)} ${escapeHtml(t('chat_tokens_used'))}</span>` : '';
+      const body = message.pending && !message.text ? '<span class="chat-thinking"><i></i><i></i><i></i></span>' : renderChatMarkdown(message.text);
+      return `<article class="chat-message is-${message.role}" data-message-id="${escapeHtml(message.id)}">
+        <div class="chat-avatar">${message.role === 'user' ? escapeHtml(t('chat_you').slice(0, 2).toUpperCase()) : 'AI'}</div>
+        <div><div class="chat-message-body">${body}</div>${files}<div class="chat-message-meta"><span>${escapeHtml(formatChatTime(message.createdAt))}</span>${usage}</div></div>
+      </article>`;
+    }).join('') + (state.chat.error ? `<div class="chat-error">${escapeHtml(state.chat.error)}</div>` : '');
+  }
+  requestAnimationFrame(() => { container.scrollTop = container.scrollHeight; });
+  updateChatControls();
+}
+
+function updateChatControls() {
+  const button = $('#chatSend');
+  const input = $('#chatInput');
+  if (!button || !input) return;
+  button.classList.toggle('is-stop', state.chat.generating);
+  button.title = state.chat.generating ? t('chat_stop') : t('chat_send');
+  button.setAttribute('aria-label', button.title);
+  button.innerHTML = state.chat.generating
+    ? '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="7" y="7" width="10" height="10" rx="1"/></svg>'
+    : '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="m5 12 14-7-4 14-3-6-7-1Z"/></svg>';
+  $('#chatModel').disabled = state.chat.generating;
+  $('#chatEffort').disabled = state.chat.generating;
+  $('#chatAttach').disabled = state.chat.generating;
+}
+
+function showChatError(message) {
+  state.chat.error = message;
+  renderChat();
+}
+
+function fileToDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result));
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+async function extractPdfText(file) {
+  if (!window.pdfjsLib) throw new Error('pdf_unavailable');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+  const chunks = [];
+  for (let pageNumber = 1; pageNumber <= Math.min(pdf.numPages, 80); pageNumber += 1) {
+    const page = await pdf.getPage(pageNumber);
+    const content = await page.getTextContent();
+    chunks.push(`[Page ${pageNumber}]\n${content.items.map(item => item.str).join(' ')}`);
+    if (chunks.join('\n\n').length >= CHAT_MAX_CONTEXT_CHARS) break;
+  }
+  return chunks.join('\n\n').slice(0, CHAT_MAX_CONTEXT_CHARS);
+}
+
+async function addChatFiles(fileList) {
+  const files = [...fileList];
+  if (state.chat.attachments.length + files.length > CHAT_MAX_FILES) return showChatError(t('chat_file_limit'));
+  state.chat.error = '';
+  for (const file of files) {
+    try {
+      if (file.type.startsWith('image/')) {
+        if (file.size > CHAT_MAX_IMAGE_BYTES) { showChatError(t('chat_image_large')); continue; }
+        state.chat.attachments.push({ id: createChatId(), name: file.name, kind: 'image', type: file.type, data: await fileToDataUrl(file) });
+        continue;
+      }
+      if (file.size > CHAT_MAX_TEXT_BYTES) { showChatError(t('chat_file_large')); continue; }
+      const extension = file.name.split('.').pop()?.toLowerCase();
+      const textExtensions = new Set(['txt','md','json','csv','js','ts','tsx','jsx','py','java','c','cpp','h','css','html','xml','yaml','yml','toml','log']);
+      let textContent = '';
+      if (extension === 'pdf' || file.type === 'application/pdf') textContent = await extractPdfText(file);
+      else if (textExtensions.has(extension) || file.type.startsWith('text/')) textContent = await file.text();
+      else { showChatError(t('chat_file_unsupported')); continue; }
+      if (!textContent.trim()) { showChatError(extension === 'pdf' ? t('chat_pdf_unavailable') : t('chat_file_read_error')); continue; }
+      state.chat.attachments.push({ id: createChatId(), name: file.name, kind: 'text', type: file.type, text: textContent.slice(0, CHAT_MAX_CONTEXT_CHARS) });
+    } catch {
+      showChatError(file.name.toLowerCase().endsWith('.pdf') ? t('chat_pdf_unavailable') : t('chat_file_read_error'));
+    }
+  }
+  renderChatAttachments();
+  $('#chatFileInput').value = '';
+}
+
+function buildUserContent(text, attachments) {
+  const documents = attachments.filter(file => file.kind === 'text');
+  const images = attachments.filter(file => file.kind === 'image');
+  let combined = text.trim();
+  for (const file of documents) combined += `\n\n--- File: ${file.name} ---\n${file.text}`;
+  combined = combined.trim().slice(0, CHAT_MAX_CONTEXT_CHARS);
+  if (!images.length) return combined;
+  return [
+    { type: 'text', text: combined || 'Analyze the attached image.' },
+    ...images.map(file => ({ type: 'image_url', image_url: { url: file.data } }))
+  ];
+}
+
+function chatErrorForStatus(status, serverMessage = '') {
+  if (status === 401 || status === 403) return t('chat_error_401');
+  if (status === 402) return t('chat_error_402');
+  if (status === 429) return t('chat_error_429');
+  if ([502, 503, 504].includes(status)) return t('chat_error_503');
+  return serverMessage || t('chat_error_generic');
+}
+
+function extractDeltaText(chunk) {
+  const content = chunk?.choices?.[0]?.delta?.content ?? chunk?.choices?.[0]?.message?.content ?? '';
+  if (typeof content === 'string') return content;
+  if (Array.isArray(content)) return content.map(part => typeof part === 'string' ? part : part?.text || '').join('');
+  return '';
+}
+
+async function sendChatMessage() {
+  if (state.chat.generating) { state.chat.controller?.abort(); return; }
+  if (!state.apiKey) return showChatError(t('chat_no_key'));
+  const input = $('#chatInput');
+  const text = input.value.trim();
+  const attachments = [...state.chat.attachments];
+  if (!text && !attachments.length) return showChatError(t('chat_empty_message'));
+
+  const conversation = activeConversation();
+  conversation.model = $('#chatModel').value;
+  conversation.effort = $('#chatEffort').value;
+  const userMessage = {
+    id: createChatId(), role: 'user', text: text || attachments.map(file => file.name).join(', '),
+    apiContent: buildUserContent(text, attachments), files: attachments.map(({ name, kind }) => ({ name, kind })), createdAt: Date.now()
+  };
+  const assistantMessage = { id: createChatId(), role: 'assistant', text: '', apiContent: '', files: [], createdAt: Date.now(), pending: true, usage: null };
+  conversation.messages.push(userMessage, assistantMessage);
+  if (conversation.messages.filter(message => message.role === 'user').length === 1) {
+    conversation.title = (text || attachments[0]?.name || t('chat_untitled')).replace(/\s+/g, ' ').trim().slice(0, 38);
+  }
+  conversation.updatedAt = Date.now();
+  state.chat.attachments = [];
+  state.chat.error = '';
+  state.chat.generating = true;
+  state.chat.controller = new AbortController();
+  input.value = '';
+  input.style.height = '';
+  renderChat();
+
+  const payload = {
+    model: conversation.model,
+    messages: conversation.messages.slice(0, -1).map(message => ({ role: message.role, content: message.apiContent || message.text })),
+    stream: true
+  };
+  if (conversation.effort !== 'auto') payload.reasoning_effort = conversation.effort;
+
+  let renderPending = false;
+  const updateStreamingMessage = () => {
+    if (renderPending) return;
+    renderPending = true;
+    requestAnimationFrame(() => {
+      renderPending = false;
+      const body = $(`[data-message-id="${assistantMessage.id}"] .chat-message-body`);
+      if (body) body.innerHTML = assistantMessage.text ? renderChatMarkdown(assistantMessage.text) : '<span class="chat-thinking"><i></i><i></i><i></i></span>';
+      const messages = $('#chatMessages');
+      if (messages) messages.scrollTop = messages.scrollHeight;
+    });
+  };
+
+  try {
+    const response = await fetch(CHAT_API_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'text/event-stream' },
+      body: JSON.stringify({ action: 'chat', api_key: state.apiKey, payload }),
+      signal: state.chat.controller.signal
+    });
+    if (!response.ok) {
+      let data = null;
+      try { data = await response.json(); } catch {}
+      throw Object.assign(new Error(chatErrorForStatus(response.status, data?.error?.message || data?.message)), { status: response.status });
+    }
+    if (!response.body) throw new Error(t('chat_error_generic'));
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = '';
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buffer += decoder.decode(value, { stream: true });
+      const events = buffer.split(/\r?\n\r?\n/);
+      buffer = events.pop() || '';
+      for (const event of events) {
+        const dataText = event.split(/\r?\n/).filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('');
+        if (!dataText || dataText === '[DONE]') continue;
+        try {
+          const chunk = JSON.parse(dataText);
+          assistantMessage.text += extractDeltaText(chunk);
+          if (chunk.usage) assistantMessage.usage = chunk.usage;
+          updateStreamingMessage();
+        } catch {}
+      }
+    }
+    if (buffer.trim()) {
+      const dataText = buffer.split(/\r?\n/).filter(line => line.startsWith('data:')).map(line => line.slice(5).trim()).join('');
+      if (dataText && dataText !== '[DONE]') try {
+        const chunk = JSON.parse(dataText);
+        assistantMessage.text += extractDeltaText(chunk);
+        if (chunk.usage) assistantMessage.usage = chunk.usage;
+      } catch {}
+    }
+    if (!assistantMessage.text.trim()) throw new Error(t('chat_error_generic'));
+  } catch (error) {
+    if (error.name === 'AbortError') {
+      if (!assistantMessage.text) conversation.messages = conversation.messages.filter(message => message.id !== assistantMessage.id);
+      state.chat.error = t('chat_stopped');
+    } else {
+      if (!assistantMessage.text) conversation.messages = conversation.messages.filter(message => message.id !== assistantMessage.id);
+      state.chat.error = error.message || chatErrorForStatus(error.status);
+    }
+  } finally {
+    assistantMessage.pending = false;
+    assistantMessage.apiContent = assistantMessage.text;
+    conversation.updatedAt = Date.now();
+    state.chat.generating = false;
+    state.chat.controller = null;
+    saveChatState();
+    renderChat();
+    refreshBalance(true, true);
+    setTimeout(() => refreshUsage(true), 1200);
+  }
+}
+
 function setView(view) {
   $$('.nav-link').forEach(button => button.classList.toggle('is-active', button.dataset.view === view));
   $$('.view').forEach(panel => panel.classList.toggle('is-active', panel.id === `${view}View`));
@@ -4971,6 +5508,10 @@ function setView(view) {
   if (view === 'models' && state.apiKey) {
     const age = Date.now() - (state.modelsUpdatedAt || 0);
     if (age >= MODELS_REFRESH_INTERVAL_MS) loadModelsFromAPI();
+  }
+  if (view === 'chat') {
+    renderChat();
+    setTimeout(() => $('#chatInput')?.focus(), 180);
   }
 }
 
@@ -5065,6 +5606,7 @@ async function init() {
     $('#guidePanel').innerHTML = `<div class="empty-guide">${t('read_error')}</div>`;
   }
 
+  restoreChatState();
   applyLanguage();
   showKeyStage();
 
@@ -5184,6 +5726,76 @@ async function init() {
   $$('.nav-link[data-view]').forEach(button => button.addEventListener('click', () => setView(button.dataset.view)));
   $('#usageRefresh').addEventListener('click', () => refreshUsage(false));
   $('#modelSearch').addEventListener('input', event => renderModels(event.target.value));
+  $('#chatForm').addEventListener('submit', event => { event.preventDefault(); sendChatMessage(); });
+  $('#chatSend').addEventListener('click', event => {
+    if (!state.chat.generating) return;
+    event.preventDefault();
+    state.chat.controller?.abort();
+  });
+  $('#chatInput').addEventListener('input', event => {
+    event.target.style.height = 'auto';
+    event.target.style.height = `${Math.min(event.target.scrollHeight, 160)}px`;
+    if (state.chat.error) { state.chat.error = ''; renderChat(); }
+  });
+  $('#chatInput').addEventListener('keydown', event => {
+    if (event.key === 'Enter' && !event.shiftKey && !event.isComposing) {
+      event.preventDefault();
+      sendChatMessage();
+    }
+  });
+  $('#chatAttach').addEventListener('click', () => $('#chatFileInput').click());
+  $('#chatFileInput').addEventListener('change', event => addChatFiles(event.target.files));
+  $('#chatAttachments').addEventListener('click', event => {
+    const button = event.target.closest('[data-remove-attachment]');
+    if (!button) return;
+    state.chat.attachments = state.chat.attachments.filter(file => file.id !== button.dataset.removeAttachment);
+    renderChatAttachments();
+  });
+  $('#chatNew').addEventListener('click', () => {
+    if (state.chat.generating) return;
+    createConversation();
+    state.chat.conversations = state.chat.conversations.slice(0, 12);
+    state.chat.error = '';
+    renderChat();
+    $('#chatInput').focus();
+  });
+  $('#chatHistory').addEventListener('click', event => {
+    const button = event.target.closest('[data-chat-id]');
+    if (!button || state.chat.generating) return;
+    state.chat.activeId = button.dataset.chatId;
+    state.chat.attachments = [];
+    state.chat.error = '';
+    saveChatState();
+    renderChat();
+  });
+  $('#chatClear').addEventListener('click', () => {
+    if (state.chat.generating) return;
+    const conversation = activeConversation();
+    if (conversation.messages.length && !window.confirm(t('chat_clear_confirm'))) return;
+    conversation.messages = [];
+    conversation.title = t('chat_untitled');
+    conversation.updatedAt = Date.now();
+    state.chat.attachments = [];
+    state.chat.error = '';
+    saveChatState();
+    renderChat();
+  });
+  $('#chatModel').addEventListener('change', event => {
+    const conversation = activeConversation();
+    conversation.model = event.target.value;
+    conversation.updatedAt = Date.now();
+    saveChatState();
+  });
+  $('#chatEffort').addEventListener('change', event => {
+    const conversation = activeConversation();
+    conversation.effort = event.target.value;
+    conversation.updatedAt = Date.now();
+    saveChatState();
+  });
+  const chatComposer = $('.chat-composer');
+  ['dragenter', 'dragover'].forEach(type => chatComposer.addEventListener(type, event => { event.preventDefault(); chatComposer.classList.add('is-dragging'); }));
+  ['dragleave', 'drop'].forEach(type => chatComposer.addEventListener(type, event => { event.preventDefault(); chatComposer.classList.remove('is-dragging'); }));
+  chatComposer.addEventListener('drop', event => addChatFiles(event.dataTransfer.files));
   $('.brand').addEventListener('click', event => { event.preventDefault(); setView('guides'); });
 
   document.addEventListener('visibilitychange', () => {
