@@ -45,6 +45,13 @@ body {
   overflow-x: hidden;
 }
 
+/* Keep the desktop scrollbar lane reserved when the fixed-height chat view
+   makes the document shorter than the other sections. This prevents the
+   whole glass navigation from shifting sideways during view switches. */
+@media (min-width: 901px) {
+  body { min-height:calc(100vh + 1px); }
+}
+
 /* Bloom-inspired monochrome liquid glass refresh */
 .hero-video {
   position: fixed;
