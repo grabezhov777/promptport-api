@@ -5351,7 +5351,7 @@ function renderChat() {
   } else {
     container.innerHTML = conversation.messages.map(message => {
       const files = message.files?.length ? `<div class="chat-message-files">${message.files.map(file => `<span class="chat-message-file">${file.kind === 'image' ? '▧' : '≡'} ${escapeHtml(file.name)}</span>`).join('')}</div>` : '';
-      const usage = message.usage?.total_tokens != null ? `<span>${formatNumber(message.usage.total_tokens)} ${escapeHtml(t('chat_tokens_used'))}</span>` : '';
+      const usage = message.usage?.total_tokens != null ? `<span>${formatUsageNumber(message.usage.total_tokens)} ${escapeHtml(t('chat_tokens_used'))}</span>` : '';
       const body = message.pending && !message.text ? '<span class="chat-thinking"><i></i><i></i><i></i></span>' : renderChatMarkdown(message.text);
       return `<article class="chat-message is-${message.role}" data-message-id="${escapeHtml(message.id)}">
         <div class="chat-avatar">${message.role === 'user' ? escapeHtml(t('chat_you').slice(0, 2).toUpperCase()) : 'AI'}</div>
