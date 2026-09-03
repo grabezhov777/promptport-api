@@ -4344,9 +4344,29 @@ function localInstallModelEntries() {
   }, {});
 }
 
+function cursorModelName(modelId) {
+  let name = String(modelId || '').trim().toLowerCase();
+  if (name.startsWith('claude-')) name = name.slice('claude-'.length);
+  else if (name.startsWith('kimi-')) name = name.slice('kimi-'.length);
+  return `${name}-cursor`;
+}
+
+function cursorInstallModelSpecs() {
+  return Object.entries(localInstallModelEntries()).map(([id, value]) => [cursorModelName(id), value.name]);
+}
+
+const cursorLegacyModelNames = [
+  'claude-fable-5-cursor', 'claude-opus-5-cursor', 'claude-opus-4-8-cursor',
+  'claude-opus-4-7-cursor', 'claude-opus-4-6-cursor', 'claude-sonnet-5-cursor',
+  'claude-sonnet-4-6-cursor', 'kimi-k3-cursor', 'kimi-k2.7-code-cursor',
+  'grok-build-cursor', 'composer-2.5-cursor', 'grok-composer-2.5-fast-cursor'
+];
+
 function windowsLocalInstall(clientId) {
   const key = 'ВАШ_API_КЛЮЧ';
   const models = localInstallModelEntries();
+  const cursorSpecs = cursorInstallModelSpecs();
+  const cursorDefault = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'sonnet-4-6-cursor'].find(id => cursorSpecs.some(([name]) => name === id)) || cursorSpecs[0]?.[0];
   const modelJson = JSON.stringify(models, null, 2);
   const grokDefaultApiId = ['grok-4.6', 'grok-4.5', 'gpt-5.6-terra', 'gpt-5.4', 'composer-2.5-fast'].find(id => models[id]) || Object.keys(models)[0];
   const grokConfigId = id => id === 'composer-2.5-fast' ? 'grok-composer-2.5-fast' : id;
@@ -4602,6 +4622,94 @@ Set-Value $Config 'small_model' "cheapvibecode/$SmallId"
 Write-Host "OpenCode configured: $Path"
 if (Test-Path -LiteralPath $Backup) { Write-Host "Backup: $Backup" }`;
 
+  if (clientId === 'cursor') return String.raw`$ErrorActionPreference = 'Stop'
+$ApiKey = '${key}'
+$BaseUrl = 'https://cheapvibecode.ru/v1'
+$StateDb = if (-not [string]::IsNullOrWhiteSpace($env:CVC_CURSOR_STATE_DB_PATH)) { $env:CVC_CURSOR_STATE_DB_PATH } else { Join-Path $env:APPDATA 'Cursor\User\globalStorage\state.vscdb' }
+if (-not (Test-Path -LiteralPath $StateDb)) { throw "Cursor state database was not found: $StateDb. Start Cursor once, close it, then run this command again." }
+$Node = Get-Command node -ErrorAction SilentlyContinue
+if ($null -eq $Node) { throw 'Node.js 22.5 or newer is required for the transparent local Cursor setup.' }
+& $Node.Source -e "try{require('node:sqlite')}catch(e){process.exit(1)}"
+if ($LASTEXITCODE -ne 0) { throw 'This Node.js version does not provide node:sqlite. Install Node.js 22.5 or newer and retry.' }
+$Cursor = Get-Process -Name 'Cursor' -ErrorAction SilentlyContinue
+if ($Cursor) { $Cursor | Stop-Process -Force -ErrorAction Stop; Start-Sleep -Milliseconds 800 }
+$Stamp = Get-Date -Format yyyyMMdd-HHmmss-fff
+$Backup = "$StateDb.bak.$Stamp"
+Copy-Item -LiteralPath $StateDb -Destination $Backup -Force
+foreach ($Suffix in @('-wal','-shm')) { $Sidecar = "$StateDb$Suffix"; if (Test-Path -LiteralPath $Sidecar) { Copy-Item -LiteralPath $Sidecar -Destination "$Sidecar.bak.$Stamp" -Force } }
+$ScriptPath = Join-Path ([IO.Path]::GetTempPath()) ("prompt-port-cursor-" + [guid]::NewGuid().ToString('N') + '.js')
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+$Script = @'
+const { DatabaseSync } = require('node:sqlite');
+const dbPath = process.env.PROMPT_PORT_CURSOR_DB;
+const apiKey = process.env.PROMPT_PORT_CURSOR_KEY;
+const baseUrl = process.env.PROMPT_PORT_CURSOR_URL;
+const defaultModel = process.env.PROMPT_PORT_CURSOR_DEFAULT;
+const specs = JSON.parse(process.env.PROMPT_PORT_CURSOR_MODELS);
+const legacy = new Set(JSON.parse(process.env.PROMPT_PORT_CURSOR_LEGACY));
+const appKey = 'src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser';
+const plaintextKey = 'cursorAuth/openAIKey';
+const encryptedKey = 'secret://cursorAuth/openAIKey';
+const surfaces = ['cmd-k','composer','background-composer','composer-ensemble','plan-execution','spec','deep-search','quick-agent'];
+const names = specs.map(item => item[0]);
+const managed = new Set(names.concat([...legacy]));
+const asArray = value => Array.isArray(value) ? value : [];
+const dedupe = values => [...new Set(values)];
+const modelConfig = modelName => ({ modelName, maxMode:false, selectedModels:[{modelId:modelName,parameters:[]}] });
+const customModel = ([name, display]) => ({ name, defaultOn:false, parameterDefinitions:[], variants:[], legacySlugs:[], idAliases:[], supportsAgent:true, supportsImages:true, clientDisplayName:display, serverModelName:name, supportsNonMaxMode:true, supportsPlanMode:true, isUserAdded:true, inputboxShortModelName:display, supportsSandboxing:true, namedModelSectionIndex:1 });
+let db;
+try {
+  db = new DatabaseSync(dbPath);
+  db.exec('PRAGMA busy_timeout = 10000');
+  db.exec('BEGIN IMMEDIATE');
+  const read = key => db.prepare('SELECT value FROM ItemTable WHERE key = ?').get(key)?.value ?? null;
+  const upsert = (key, value) => {
+    if (db.prepare('SELECT 1 AS ok FROM ItemTable WHERE key = ?').get(key)) db.prepare('UPDATE ItemTable SET value = ? WHERE key = ?').run(value,key);
+    else db.prepare('INSERT INTO ItemTable(key,value) VALUES (?,?)').run(key,value);
+  };
+  const raw = read(appKey);
+  if (raw == null) throw new Error('Cursor application state is missing. Start Cursor once and retry.');
+  const app = JSON.parse(raw);
+  const ai = app.aiSettings && typeof app.aiSettings === 'object' && !Array.isArray(app.aiSettings) ? app.aiSettings : {};
+  app.aiSettings = ai; app.openAIBaseUrl = baseUrl; app.useOpenAIKey = true;
+  ai.userAddedModels = dedupe(asArray(ai.userAddedModels).filter(name => !managed.has(name)).concat(names));
+  ai.modelOverrideEnabled = dedupe(asArray(ai.modelOverrideEnabled).filter(name => !managed.has(name)).concat(names));
+  ai.modelOverrideDisabled = asArray(ai.modelOverrideDisabled).filter(name => !managed.has(name));
+  const existing = asArray(app.availableDefaultModels2).filter(model => !model?.name || !managed.has(model.name));
+  app.availableDefaultModels2 = existing.concat(specs.map(customModel));
+  const configs = ai.modelConfig && typeof ai.modelConfig === 'object' ? ai.modelConfig : {};
+  ai.modelConfig = configs; for (const surface of surfaces) configs[surface] = modelConfig(defaultModel);
+  for (const row of db.prepare("SELECT key,value FROM ItemTable WHERE key LIKE 'composerData:%'").all()) {
+    try { const data=JSON.parse(row.value); data.modelConfig=modelConfig(defaultModel); upsert(row.key,JSON.stringify(data)); } catch {}
+  }
+  upsert(appKey, JSON.stringify(app));
+  db.prepare('DELETE FROM ItemTable WHERE key = ?').run(encryptedKey);
+  upsert(plaintextKey, apiKey);
+  db.exec('COMMIT'); db.close(); db = null;
+} catch (error) {
+  try { if (db) db.exec('ROLLBACK'); } catch {}
+  try { if (db) db.close(); } catch {}
+  console.error(error.message || error); process.exit(1);
+}
+'@
+[IO.File]::WriteAllText($ScriptPath, $Script, $Utf8)
+$Previous = @{}
+foreach ($Name in @('PROMPT_PORT_CURSOR_DB','PROMPT_PORT_CURSOR_KEY','PROMPT_PORT_CURSOR_URL','PROMPT_PORT_CURSOR_DEFAULT','PROMPT_PORT_CURSOR_MODELS','PROMPT_PORT_CURSOR_LEGACY')) { $Previous[$Name] = [Environment]::GetEnvironmentVariable($Name,'Process') }
+try {
+  $env:PROMPT_PORT_CURSOR_DB = $StateDb; $env:PROMPT_PORT_CURSOR_KEY = $ApiKey; $env:PROMPT_PORT_CURSOR_URL = $BaseUrl
+  $env:PROMPT_PORT_CURSOR_DEFAULT = '${cursorDefault}'
+  $env:PROMPT_PORT_CURSOR_MODELS = '${JSON.stringify(cursorSpecs).replace(/'/g, "''")}'
+  $env:PROMPT_PORT_CURSOR_LEGACY = '${JSON.stringify(cursorLegacyModelNames).replace(/'/g, "''")}'
+  & $Node.Source $ScriptPath
+  if ($LASTEXITCODE -ne 0) { throw "Cursor database update failed. Restore it from: $Backup" }
+} finally {
+  Remove-Item -LiteralPath $ScriptPath -Force -ErrorAction SilentlyContinue
+  foreach ($Name in $Previous.Keys) { [Environment]::SetEnvironmentVariable($Name,$Previous[$Name],'Process') }
+}
+Write-Host "Cursor configured with $(${cursorSpecs.length}) models."
+Write-Host "Backup: $Backup"
+Write-Host 'Open Cursor again.'`;
+
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
 $Dir = Join-Path $HOME '.codex'
@@ -4663,6 +4771,8 @@ PROMPT_PORT_CONFIG`;
 function unixShellInstall(clientId, os) {
   const key = 'ВАШ_API_КЛЮЧ';
   const models = localInstallModelEntries();
+  const cursorSpecs = cursorInstallModelSpecs();
+  const cursorDefault = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'sonnet-4-6-cursor'].find(id => cursorSpecs.some(([name]) => name === id)) || cursorSpecs[0]?.[0];
   const modelJson = JSON.stringify(models, null, 2);
   const grokDefaultApiId = ['grok-4.6', 'grok-4.5', 'gpt-5.6-terra', 'gpt-5.4', 'composer-2.5-fast'].find(id => models[id]) || Object.keys(models)[0];
   const grokConfigId = id => id === 'composer-2.5-fast' ? 'grok-composer-2.5-fast' : id;
@@ -4895,6 +5005,72 @@ chmod 600 "$PATH_FILE"
 printf '%s\n' 'OpenCode configured.' "Backup: $BACKUP"`;
   }
 
+  if (clientId === 'cursor') {
+    const cursorDb = os === 'mac'
+      ? '$HOME/Library/Application Support/Cursor/User/globalStorage/state.vscdb'
+      : '${XDG_CONFIG_HOME:-$HOME/.config}/Cursor/User/globalStorage/state.vscdb';
+    const stopCursor = os === 'mac'
+      ? `osascript -e 'tell application "Cursor" to quit' >/dev/null 2>&1 || true\nfor _ in 1 2 3 4 5; do pgrep -x Cursor >/dev/null 2>&1 || break; sleep 0.4; done\npkill -x Cursor >/dev/null 2>&1 || true`
+      : `pkill -x Cursor >/dev/null 2>&1 || true\npkill -x cursor >/dev/null 2>&1 || true`;
+    return `set -eu
+API_KEY='${key}'
+BASE_URL='https://cheapvibecode.ru/v1'
+DEFAULT_MODEL='${cursorDefault}'
+STATE_DB="${cursorDb}"
+if [ -n "\${CVC_CURSOR_STATE_DB_PATH:-}" ]; then STATE_DB="$CVC_CURSOR_STATE_DB_PATH"; fi
+if command -v python3 >/dev/null 2>&1; then PYTHON_BIN=python3; elif command -v python >/dev/null 2>&1; then PYTHON_BIN=python; else printf '%s\n' 'Python 3 is required for the transparent local Cursor setup.' >&2; exit 1; fi
+if [ ! -f "$STATE_DB" ]; then printf '%s\n' "Cursor state database was not found: $STATE_DB" 'Start Cursor once, close it, then run this command again.' >&2; exit 1; fi
+${stopCursor}
+STAMP=$(date +%Y%m%d-%H%M%S)-$$
+BACKUP="$STATE_DB.bak.$STAMP"
+cp "$STATE_DB" "$BACKUP"
+for SUFFIX in -wal -shm; do [ ! -f "$STATE_DB$SUFFIX" ] || cp "$STATE_DB$SUFFIX" "$STATE_DB$SUFFIX.bak.$STAMP"; done
+export PROMPT_PORT_CURSOR_DB="$STATE_DB" PROMPT_PORT_CURSOR_KEY="$API_KEY" PROMPT_PORT_CURSOR_URL="$BASE_URL" PROMPT_PORT_CURSOR_DEFAULT="$DEFAULT_MODEL"
+export PROMPT_PORT_CURSOR_MODELS='${JSON.stringify(cursorSpecs)}'
+export PROMPT_PORT_CURSOR_LEGACY='${JSON.stringify(cursorLegacyModelNames)}'
+"$PYTHON_BIN" <<'PROMPT_PORT_PYTHON'
+import json, os, sqlite3, sys
+db_path=os.environ['PROMPT_PORT_CURSOR_DB']; api_key=os.environ['PROMPT_PORT_CURSOR_KEY']; base_url=os.environ['PROMPT_PORT_CURSOR_URL']; default_model=os.environ['PROMPT_PORT_CURSOR_DEFAULT']
+specs=json.loads(os.environ['PROMPT_PORT_CURSOR_MODELS']); legacy=set(json.loads(os.environ['PROMPT_PORT_CURSOR_LEGACY'])); names=[item[0] for item in specs]; managed=set(names)|legacy
+app_key='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'; plaintext_key='cursorAuth/openAIKey'; encrypted_key='secret://cursorAuth/openAIKey'
+surfaces=['cmd-k','composer','background-composer','composer-ensemble','plan-execution','spec','deep-search','quick-agent']
+def dedupe(items): return list(dict.fromkeys(items))
+def model_config(name): return {'modelName':name,'maxMode':False,'selectedModels':[{'modelId':name,'parameters':[]}]}
+def custom_model(item):
+    name,display=item
+    return {'name':name,'defaultOn':False,'parameterDefinitions':[],'variants':[],'legacySlugs':[],'idAliases':[],'supportsAgent':True,'supportsImages':True,'clientDisplayName':display,'serverModelName':name,'supportsNonMaxMode':True,'supportsPlanMode':True,'isUserAdded':True,'inputboxShortModelName':display,'supportsSandboxing':True,'namedModelSectionIndex':1}
+connection=None
+try:
+    connection=sqlite3.connect(db_path,timeout=10); cursor=connection.cursor(); cursor.execute('PRAGMA busy_timeout = 10000'); cursor.execute('BEGIN IMMEDIATE')
+    row=cursor.execute('SELECT value FROM ItemTable WHERE key=?',(app_key,)).fetchone()
+    if not row: raise RuntimeError('Cursor application state is missing. Start Cursor once and retry.')
+    app=json.loads(row[0]); ai=app.get('aiSettings') if isinstance(app.get('aiSettings'),dict) else {}; app['aiSettings']=ai; app['openAIBaseUrl']=base_url; app['useOpenAIKey']=True
+    ai['userAddedModels']=dedupe([name for name in ai.get('userAddedModels',[]) if name not in managed]+names)
+    ai['modelOverrideEnabled']=dedupe([name for name in ai.get('modelOverrideEnabled',[]) if name not in managed]+names)
+    ai['modelOverrideDisabled']=[name for name in ai.get('modelOverrideDisabled',[]) if name not in managed]
+    existing=app.get('availableDefaultModels2',[]); existing=existing if isinstance(existing,list) else []
+    app['availableDefaultModels2']=[model for model in existing if not isinstance(model,dict) or not model.get('name') or model.get('name') not in managed]+[custom_model(item) for item in specs]
+    configs=ai.get('modelConfig') if isinstance(ai.get('modelConfig'),dict) else {}; ai['modelConfig']=configs
+    for surface in surfaces: configs[surface]=model_config(default_model)
+    for item_key,item_value in cursor.execute("SELECT key,value FROM ItemTable WHERE key LIKE 'composerData:%'").fetchall():
+        try:
+            data=json.loads(item_value); data['modelConfig']=model_config(default_model); cursor.execute('UPDATE ItemTable SET value=? WHERE key=?',(json.dumps(data,separators=(',',':')),item_key))
+        except Exception: pass
+    payload=json.dumps(app,separators=(',',':'))
+    if cursor.execute('SELECT 1 FROM ItemTable WHERE key=?',(app_key,)).fetchone(): cursor.execute('UPDATE ItemTable SET value=? WHERE key=?',(payload,app_key))
+    cursor.execute('DELETE FROM ItemTable WHERE key=?',(encrypted_key,))
+    if cursor.execute('SELECT 1 FROM ItemTable WHERE key=?',(plaintext_key,)).fetchone(): cursor.execute('UPDATE ItemTable SET value=? WHERE key=?',(api_key,plaintext_key))
+    else: cursor.execute('INSERT INTO ItemTable(key,value) VALUES (?,?)',(plaintext_key,api_key))
+    connection.commit(); connection.close(); connection=None
+except Exception as error:
+    if connection:
+        try: connection.rollback(); connection.close()
+        except Exception: pass
+    print('Cursor database update failed: '+str(error),file=sys.stderr); sys.exit(1)
+PROMPT_PORT_PYTHON
+printf '%s\n' 'Cursor configured with ${cursorSpecs.length} models.' "Backup: $BACKUP" 'Open Cursor again.'`;
+  }
+
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') {
     return `set -euo pipefail
 API_KEY='${key}'
@@ -4953,11 +5129,11 @@ printf '%s\n' 'Codex configured. Existing chats were not changed.' "Backup: $BAC
 
 function localInstallCommand(os, clientId) {
   const supported = new Set([
-    'windows:claude-code', 'windows:claude-app', 'windows:hermes', 'windows:grok', 'windows:opencode',
+    'windows:claude-code', 'windows:claude-app', 'windows:hermes', 'windows:grok', 'windows:opencode', 'windows:cursor',
     'windows:codex-vscode', 'windows:codex-app', 'windows:codex-cli',
-    'mac:claude-code', 'mac:claude-app', 'mac:hermes', 'mac:grok', 'mac:opencode',
+    'mac:claude-code', 'mac:claude-app', 'mac:hermes', 'mac:grok', 'mac:opencode', 'mac:cursor',
     'mac:codex-vscode', 'mac:codex-app', 'mac:codex-cli',
-    'linux:claude-code', 'linux:hermes', 'linux:grok', 'linux:opencode',
+    'linux:claude-code', 'linux:hermes', 'linux:grok', 'linux:opencode', 'linux:cursor',
     'linux:codex-vscode', 'linux:codex-cli'
   ]);
   if (!supported.has(`${os}:${clientId}`)) return '';
@@ -4969,7 +5145,7 @@ function cursorManualGuide(os) {
     .filter(row => row?.[3] !== 'unavailable')
     .map(row => String(row?.[0] || '').trim())
     .filter(id => /^[a-z0-9][a-z0-9._:-]*$/i.test(id) && !id.endsWith('-cursor'))
-    .map(id => `${id}-cursor`);
+    .map(cursorModelName);
   const unique = [...new Set(available)];
   const preferred = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'claude-sonnet-4-6-cursor'];
   const defaultModel = preferred.find(id => unique.includes(id)) || unique[0] || 'gpt-5.6-terra-cursor';
