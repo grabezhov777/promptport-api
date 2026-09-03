@@ -4351,19 +4351,53 @@ Write-Host "Claude Code configured: $Path"`;
 
   if (clientId === 'claude-app') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
-$Dir = Join-Path $env:LOCALAPPDATA 'Claude-3p'
-$Library = Join-Path $Dir 'configLibrary'
-$Guid = [guid]::NewGuid().ToString()
-New-Item -ItemType Directory -Force $Library | Out-Null
-$Gateway = [ordered]@{ inferenceProvider='gateway'; inferenceGatewayBaseUrl='https://ru.cheapvibecode.ru'; inferenceGatewayApiKey=$ApiKey; inferenceGatewayAuthScheme='bearer'; modelDiscoveryEnabled=$true; coworkEgressAllowedHosts=@('*') }
-$Files = @{
-  (Join-Path $Dir 'claude_desktop_config.json') = ([ordered]@{ deploymentMode='3p'; enterpriseConfig=$Gateway } | ConvertTo-Json -Depth 20)
-  (Join-Path $Library '_meta.json') = ([ordered]@{ appliedId=$Guid; entries=@([ordered]@{ id=$Guid; name='CheapVibeCode' }) } | ConvertTo-Json -Depth 20)
-  (Join-Path $Library "$Guid.json") = ($Gateway | ConvertTo-Json -Depth 20)
+$Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+function Write-Json($Path, $Value) { [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 50) + [Environment]::NewLine, $Utf8) }
+function Read-Object($Path) { if (Test-Path $Path) { try { $Value = Get-Content $Path -Raw -Encoding UTF8 | ConvertFrom-Json; if ($Value) { return $Value } } catch {} }; return [pscustomobject]@{} }
+function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties[$Name]) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
+function Set-Gateway($Object) {
+  Set-Value $Object 'inferenceProvider' 'gateway'
+  Set-Value $Object 'inferenceGatewayBaseUrl' 'https://ru.cheapvibecode.ru'
+  Set-Value $Object 'inferenceGatewayApiKey' $ApiKey
+  Set-Value $Object 'inferenceGatewayAuthScheme' 'bearer'
+  Set-Value $Object 'modelDiscoveryEnabled' $true
+  Set-Value $Object 'coworkEgressAllowedHosts' @('*')
 }
-foreach ($File in $Files.GetEnumerator()) { if (Test-Path $File.Key) { Copy-Item $File.Key "$($File.Key).bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }; Set-Content -LiteralPath $File.Key -Value $File.Value -Encoding UTF8 }
-Write-Host "Claude App configured: $Dir"
-Write-Host 'Restart Claude App'`;
+$Dirs = @()
+if ($env:APPDATA) { $Dirs += (Join-Path $env:APPDATA 'Claude-3p') }
+if ($env:LOCALAPPDATA) { $Dirs += (Join-Path $env:LOCALAPPDATA 'Claude-3p') }
+$Dirs = @($Dirs | Select-Object -Unique)
+if (-not $Dirs.Count) { throw 'APPDATA and LOCALAPPDATA are unavailable.' }
+Get-Process -Name 'Claude*' -ErrorAction SilentlyContinue | Stop-Process -Force
+foreach ($Dir in $Dirs) {
+  $Library = Join-Path $Dir 'configLibrary'
+  $SettingsPath = Join-Path $Dir 'claude_desktop_config.json'
+  $MetaPath = Join-Path $Library '_meta.json'
+  $Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-$Stamp")
+  New-Item -ItemType Directory -Force $Library, $Backup | Out-Null
+  if (Test-Path $SettingsPath) { Copy-Item $SettingsPath (Join-Path $Backup 'claude_desktop_config.json') -Force }
+  if (Test-Path $MetaPath) { Copy-Item $MetaPath (Join-Path $Backup '_meta.json') -Force }
+  $Settings = Read-Object $SettingsPath
+  Set-Value $Settings 'deploymentMode' '3p'
+  $Enterprise = if ($Settings.enterpriseConfig -is [psobject]) { $Settings.enterpriseConfig } else { [pscustomobject]@{} }
+  Set-Gateway $Enterprise
+  Set-Value $Settings 'enterpriseConfig' $Enterprise
+  Write-Json $SettingsPath $Settings
+  $Meta = Read-Object $MetaPath
+  $Guid = if ($Meta.appliedId -match '^[0-9a-fA-F-]{36}$') { [string]$Meta.appliedId } else { [guid]::NewGuid().ToString() }
+  Set-Value $Meta 'appliedId' $Guid
+  Set-Value $Meta 'entries' @([ordered]@{ id=$Guid; name='CheapVibeCode' })
+  Write-Json $MetaPath $Meta
+  $ProfilePath = Join-Path $Library "$Guid.json"
+  if (Test-Path $ProfilePath) { Copy-Item $ProfilePath (Join-Path $Backup "$Guid.json") -Force }
+  $Profile = Read-Object $ProfilePath
+  Set-Gateway $Profile
+  Write-Json $ProfilePath $Profile
+  Write-Host "Claude App configured: $Dir"
+  Write-Host "Backup: $Backup"
+}
+Write-Host 'Open Claude App again'`;
 
   if (clientId === 'hermes') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
