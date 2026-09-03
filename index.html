@@ -4318,8 +4318,28 @@ const appMeta = {
 // Cursor is intentionally left manual: reliable automation would require editing
 // Cursor's private SQLite state, which is less transparent than its settings UI.
 function localInstallModelEntries() {
-  return modelCatalog.reduce((entries, [id]) => {
-    entries[id] = { name: id.split('-').map(part => part ? part[0].toUpperCase() + part.slice(1) : part).join(' ') };
+  const liveRows = Array.isArray(models) && models.length ? models : modelCatalog;
+  return liveRows.reduce((entries, row) => {
+    const id = String(row?.[0] || '').trim();
+    const status = row?.[3];
+    const live = row?.[4];
+    if (!/^[a-z0-9][a-z0-9._:-]*$/i.test(id) || status === 'unavailable') return entries;
+    const name = String(live?.display_name || live?.name || '').trim() || id.split('-').map(part => part ? part[0].toUpperCase() + part.slice(1) : part).join(' ');
+    const fallbackContext = /gpt-5\.4-mini/i.test(id) ? 400000 : /claude-(?:sonnet-4-6|opus-4-6|haiku-4-5)/i.test(id) ? 200000 : /grok-4\.[56]/i.test(id) ? 500000 : /composer-2\.5-fast/i.test(id) ? 200000 : 1000000;
+    const context = Number(live?.context_window || live?.contextWindow || live?.context_length || live?.max_context_tokens) || fallbackContext;
+    const output = Math.min(Number(live?.max_output_tokens || live?.max_tokens) || (/claude-(?:sonnet-4-6|haiku-4-5)|composer-2\.5-fast/i.test(id) ? 64000 : 128000), context);
+    const inputs = Array.isArray(live?.input_modalities) && live.input_modalities.length ? live.input_modalities.map(String) : (live?.supports_vision ? ['text', 'image'] : ['text']);
+    const outputs = Array.isArray(live?.output_modalities) && live.output_modalities.length ? live.output_modalities.map(String) : ['text'];
+    const reasoning = typeof live?.supports_reasoning === 'boolean' ? live.supports_reasoning : !/composer-2\.5-fast/i.test(id);
+    entries[id] = {
+      name,
+      modalities: { input: inputs, output: outputs },
+      attachment: inputs.some(type => type !== 'text'),
+      reasoning,
+      temperature: !reasoning,
+      tool_call: typeof live?.supports_tools === 'boolean' ? live.supports_tools : true,
+      limit: { context, input: context, output }
+    };
     return entries;
   }, {});
 }
@@ -4327,171 +4347,307 @@ function localInstallModelEntries() {
 function windowsLocalInstall(clientId) {
   const key = 'ВАШ_API_КЛЮЧ';
   const models = localInstallModelEntries();
-  const modelLines = Object.entries(models).map(([id, value]) => `    '${id}' = [ordered]@{ name = '${value.name}' }`).join('\n');
+  const modelJson = JSON.stringify(models, null, 2);
+  const grokDefaultApiId = ['grok-4.6', 'grok-4.5', 'gpt-5.6-terra', 'gpt-5.4', 'composer-2.5-fast'].find(id => models[id]) || Object.keys(models)[0];
+  const grokConfigId = id => id === 'composer-2.5-fast' ? 'grok-composer-2.5-fast' : id;
+  const grokModelIds = Object.keys(models).map(grokConfigId);
+  const grokModelBlock = Object.entries(models).map(([id, value]) => {
+    const configId = grokConfigId(id);
+    return `[model."${configId}"]\nmodel = "${id}"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "${id}"\ndescription = "${value.name}"\napi_key = "$ApiKey"\napi_backend = "chat_completions"\ncontext_window = ${value.limit.context}`;
+  }).join('\n\n');
 
   if (clientId === 'claude-code') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
+$BaseUrl = 'https://ru.cheapvibecode.ru'
 $Dir = Join-Path $HOME '.claude'
 $Path = Join-Path $Dir 'settings.json'
-New-Item -ItemType Directory -Force $Dir | Out-Null
-if (Test-Path $Path) { Copy-Item $Path "$Path.bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }
-$Config = if (Test-Path $Path) { Get-Content $Path -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
-function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties[$Name]) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
-$EnvConfig = if ($Config.env) { $Config.env } else { [pscustomobject]@{} }
-Set-Value $EnvConfig 'ANTHROPIC_BASE_URL' 'https://ru.cheapvibecode.ru'
+$Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-claude-code-$(Get-Date -Format yyyyMMdd-HHmmss-fff)")
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
+New-Item -ItemType Directory -Force $Dir, $Backup | Out-Null
+if (Test-Path $Path) { Copy-Item $Path (Join-Path $Backup 'settings.json') -Force }
+$Config = [pscustomobject]@{}
+if (Test-Path $Path) {
+  try {
+    $Raw = Get-Content $Path -Raw -Encoding UTF8
+    if (-not [string]::IsNullOrWhiteSpace($Raw)) { $Config = $Raw | ConvertFrom-Json }
+  } catch { throw "Claude settings are not valid JSON. Backup: $Backup" }
+}
+if ($null -eq $Config -or $Config -isnot [pscustomobject]) { throw "Claude settings must contain a JSON object. Backup: $Backup" }
+$EnvConfig = if (($Config.PSObject.Properties.Name -contains 'env') -and ($Config.env -is [pscustomobject])) { $Config.env } else { [pscustomobject]@{} }
+Set-Value $EnvConfig 'ANTHROPIC_BASE_URL' $BaseUrl
 Set-Value $EnvConfig 'ANTHROPIC_AUTH_TOKEN' $ApiKey
-Set-Value $EnvConfig 'ANTHROPIC_MODEL' 'claude-sonnet-4-6'
 Set-Value $Config 'env' $EnvConfig
-$Config | ConvertTo-Json -Depth 50 | Set-Content $Path -Encoding UTF8
-[Environment]::SetEnvironmentVariable('ANTHROPIC_BASE_URL','https://ru.cheapvibecode.ru','User')
-[Environment]::SetEnvironmentVariable('ANTHROPIC_AUTH_TOKEN',$ApiKey,'User')
-[Environment]::SetEnvironmentVariable('ANTHROPIC_MODEL','claude-sonnet-4-6','User')
-[Environment]::SetEnvironmentVariable('CODEX_SALE_API_KEY',$ApiKey,'User')
-Write-Host "Claude Code configured: $Path"`;
+$Sandbox = if (($Config.PSObject.Properties.Name -contains 'sandbox') -and ($Config.sandbox -is [pscustomobject])) { $Config.sandbox } else { [pscustomobject]@{} }
+$Network = if (($Sandbox.PSObject.Properties.Name -contains 'network') -and ($Sandbox.network -is [pscustomobject])) { $Sandbox.network } else { [pscustomobject]@{} }
+Set-Value $Network 'allowedDomains' ([object[]]@('*'))
+Set-Value $Sandbox 'network' $Network
+Set-Value $Config 'sandbox' $Sandbox
+[IO.File]::WriteAllText($Path, ($Config | ConvertTo-Json -Depth 30) + [Environment]::NewLine, $Utf8)
+Write-Host "Claude Code configured: $Path"
+Write-Host "Backup: $Backup"`;
 
   if (clientId === 'claude-app') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
-$Stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+$BaseUrl = 'https://ru.cheapvibecode.ru'
+$Stamp = Get-Date -Format 'yyyyMMdd-HHmmss-fff'
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 function Write-Json($Path, $Value) { [IO.File]::WriteAllText($Path, ($Value | ConvertTo-Json -Depth 50) + [Environment]::NewLine, $Utf8) }
-function Read-Object($Path) { if (Test-Path $Path) { try { $Value = Get-Content $Path -Raw -Encoding UTF8 | ConvertFrom-Json; if ($Value) { return $Value } } catch {} }; return [pscustomobject]@{} }
-function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties[$Name]) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
+function Read-Object($Path) {
+  if (-not (Test-Path $Path)) { return [pscustomobject]@{} }
+  try {
+    $Raw = Get-Content $Path -Raw -Encoding UTF8
+    if ([string]::IsNullOrWhiteSpace($Raw)) { return [pscustomobject]@{} }
+    $Value = $Raw | ConvertFrom-Json
+    if ($null -eq $Value -or $Value -isnot [pscustomobject]) { return [pscustomobject]@{} }
+    return $Value
+  } catch { return [pscustomobject]@{} }
+}
+function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
+function Remove-Value($Object, $Name) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.PSObject.Properties.Remove($Name) } }
 function Set-Gateway($Object) {
   Set-Value $Object 'inferenceProvider' 'gateway'
-  Set-Value $Object 'inferenceGatewayBaseUrl' 'https://ru.cheapvibecode.ru'
+  Set-Value $Object 'inferenceGatewayBaseUrl' $BaseUrl
   Set-Value $Object 'inferenceGatewayApiKey' $ApiKey
   Set-Value $Object 'inferenceGatewayAuthScheme' 'bearer'
   Set-Value $Object 'modelDiscoveryEnabled' $true
-  Set-Value $Object 'coworkEgressAllowedHosts' @('*')
+  Set-Value $Object 'coworkEgressAllowedHosts' ([object[]]@('*'))
+  Remove-Value $Object 'inferenceGatewayHeaders'
+  Remove-Value $Object 'inferenceCustomHeaders'
+  Remove-Value $Object 'inferenceModels'
 }
-$Dirs = @()
-if ($env:APPDATA) { $Dirs += (Join-Path $env:APPDATA 'Claude-3p') }
-if ($env:LOCALAPPDATA) { $Dirs += (Join-Path $env:LOCALAPPDATA 'Claude-3p') }
-$Dirs = @($Dirs | Select-Object -Unique)
-if (-not $Dirs.Count) { throw 'APPDATA and LOCALAPPDATA are unavailable.' }
-Get-Process -Name 'Claude*' -ErrorAction SilentlyContinue | Stop-Process -Force
+$Candidates = @()
+if (-not [string]::IsNullOrWhiteSpace($env:APPDATA)) { $Candidates += (Join-Path $env:APPDATA 'Claude-3p') }
+if (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { $Candidates += (Join-Path $env:LOCALAPPDATA 'Claude-3p') }
+$Candidates = @($Candidates | Select-Object -Unique)
+$Dirs = @($Candidates | Where-Object { Test-Path $_ })
+if (-not $Dirs.Count -and -not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { $Dirs = @(Join-Path $env:LOCALAPPDATA 'Claude-3p') }
+if (-not $Dirs.Count -and -not [string]::IsNullOrWhiteSpace($env:APPDATA)) { $Dirs = @(Join-Path $env:APPDATA 'Claude-3p') }
+if (-not $Dirs.Count) { throw 'Windows did not provide APPDATA or LOCALAPPDATA. Claude App settings could not be found.' }
 foreach ($Dir in $Dirs) {
   $Library = Join-Path $Dir 'configLibrary'
   $SettingsPath = Join-Path $Dir 'claude_desktop_config.json'
   $MetaPath = Join-Path $Library '_meta.json'
-  $Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-$Stamp")
-  New-Item -ItemType Directory -Force $Library, $Backup | Out-Null
+  $Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-claude-app-$Stamp")
+  New-Item -ItemType Directory -Force $Dir, $Library, $Backup | Out-Null
   if (Test-Path $SettingsPath) { Copy-Item $SettingsPath (Join-Path $Backup 'claude_desktop_config.json') -Force }
-  if (Test-Path $MetaPath) { Copy-Item $MetaPath (Join-Path $Backup '_meta.json') -Force }
+  if (Test-Path $MetaPath) { Copy-Item $MetaPath (Join-Path $Backup 'configLibrary-meta.json') -Force }
   $Settings = Read-Object $SettingsPath
   Set-Value $Settings 'deploymentMode' '3p'
-  $Enterprise = if ($Settings.enterpriseConfig -is [psobject]) { $Settings.enterpriseConfig } else { [pscustomobject]@{} }
+  $Enterprise = if (($Settings.PSObject.Properties.Name -contains 'enterpriseConfig') -and ($Settings.enterpriseConfig -is [pscustomobject])) { $Settings.enterpriseConfig } else { [pscustomobject]@{} }
   Set-Gateway $Enterprise
   Set-Value $Settings 'enterpriseConfig' $Enterprise
   Write-Json $SettingsPath $Settings
   $Meta = Read-Object $MetaPath
-  $Guid = if ($Meta.appliedId -match '^[0-9a-fA-F-]{36}$') { [string]$Meta.appliedId } else { [guid]::NewGuid().ToString() }
+  $Guid = if (($Meta.PSObject.Properties.Name -contains 'appliedId') -and ([string]$Meta.appliedId -match '^[0-9a-fA-F-]{36}$')) { [string]$Meta.appliedId } else { [guid]::NewGuid().ToString() }
+  $Entries = @()
+  if (($Meta.PSObject.Properties.Name -contains 'entries') -and ($Meta.entries -is [array])) { $Entries = @($Meta.entries) }
+  if (-not ($Entries | Where-Object { $_.id -eq $Guid })) { $Entries += [pscustomobject]@{ id=$Guid; name='CheapVibeCode' } }
   Set-Value $Meta 'appliedId' $Guid
-  Set-Value $Meta 'entries' @([ordered]@{ id=$Guid; name='CheapVibeCode' })
+  Set-Value $Meta 'entries' $Entries
   Write-Json $MetaPath $Meta
   $ProfilePath = Join-Path $Library "$Guid.json"
-  if (Test-Path $ProfilePath) { Copy-Item $ProfilePath (Join-Path $Backup "$Guid.json") -Force }
+  if (Test-Path $ProfilePath) { Copy-Item $ProfilePath (Join-Path $Backup 'active-profile.json') -Force }
   $Profile = Read-Object $ProfilePath
   Set-Gateway $Profile
   Write-Json $ProfilePath $Profile
-  Write-Host "Claude App configured: $Dir"
+  Write-Host "Claude App configured: $SettingsPath"
   Write-Host "Backup: $Backup"
 }
-Write-Host 'Open Claude App again'`;
+$Claude = Get-Process -Name 'Claude' -ErrorAction SilentlyContinue
+if ($Claude) { $Claude | Stop-Process -Force -ErrorAction SilentlyContinue; Start-Sleep -Seconds 2 }
+Write-Host 'Done. Open Claude App; it will use the third-party Gateway mode.'`;
 
   if (clientId === 'hermes') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
-$Dir = Join-Path $env:LOCALAPPDATA 'hermes'
-New-Item -ItemType Directory -Force $Dir | Out-Null
+$Dir = if (-not [string]::IsNullOrWhiteSpace($env:HERMES_HOME)) { $env:HERMES_HOME } elseif (-not [string]::IsNullOrWhiteSpace($env:LOCALAPPDATA)) { Join-Path $env:LOCALAPPDATA 'hermes' } else { Join-Path $HOME '.hermes' }
+$Stamp = Get-Date -Format yyyyMMdd-HHmmss-fff
+$Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-hermes-$Stamp")
 $ConfigPath = Join-Path $Dir 'config.yaml'
 $EnvPath = Join-Path $Dir '.env'
-if (Test-Path $ConfigPath) { Copy-Item $ConfigPath "$ConfigPath.bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }
-if (Test-Path $EnvPath) { Copy-Item $EnvPath "$EnvPath.bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+New-Item -ItemType Directory -Force $Dir, $Backup | Out-Null
+if (Test-Path $ConfigPath) { Copy-Item $ConfigPath (Join-Path $Backup 'config.yaml') -Force }
+if (Test-Path $EnvPath) { Copy-Item $EnvPath (Join-Path $Backup '.env') -Force }
 $Models = @('${Object.keys(models).join("','")}')
-$Yaml = 'custom_providers:' + [Environment]::NewLine + '  - name: "cheapvibecode"' + [Environment]::NewLine + '    base_url: "https://cheapvibecode.ru/v1"' + [Environment]::NewLine + '    key_env: "CVC_API_KEY"' + [Environment]::NewLine + '    api_mode: chat_completions' + [Environment]::NewLine + '    models:' + [Environment]::NewLine + (($Models | ForEach-Object { '      "' + $_ + '": {}' }) -join [Environment]::NewLine) + [Environment]::NewLine + [Environment]::NewLine + 'model:' + [Environment]::NewLine + '  provider: "custom:cheapvibecode"' + [Environment]::NewLine + '  default: "claude-sonnet-4-6"' + [Environment]::NewLine
-Set-Content $ConfigPath $Yaml -Encoding UTF8
-Set-Content $EnvPath ('CVC_API_KEY=' + $ApiKey + [Environment]::NewLine + 'CHEAPCODE_API_KEY=' + $ApiKey) -Encoding UTF8
+$Provider = @('  - name: "cheapvibecode"','    base_url: "https://cheapvibecode.ru/v1"','    key_env: "CVC_API_KEY"','    api_mode: chat_completions','    models:') + @($Models | ForEach-Object { '      "' + $_ + '": {}' })
+$Existing = if (Test-Path $ConfigPath) { @(Get-Content $ConfigPath -Encoding UTF8) } else { @() }
+function Split-Section($Lines, $Name) {
+  $Main = New-Object System.Collections.Generic.List[string]; $Section = New-Object System.Collections.Generic.List[string]; $Capture = $false
+  foreach ($Line in $Lines) {
+    if ($Capture -and $Line -match '^[A-Za-z0-9_.-]+\s*:') { $Capture = $false }
+    if (-not $Capture -and $Line -match ('^' + [regex]::Escape($Name) + '\s*:')) { $Capture = $true; continue }
+    if ($Capture) { $Section.Add($Line) } else { $Main.Add($Line) }
+  }
+  [pscustomobject]@{ Main=@($Main); Section=@($Section) }
+}
+$Split = Split-Section $Existing 'custom_providers'
+$Main = (Split-Section $Split.Main 'model').Main
+$OtherProviders = New-Object System.Collections.Generic.List[string]
+$Current = New-Object System.Collections.Generic.List[string]
+function Flush-HermesProvider {
+  if ($Current.Count -and (($Current -join [Environment]::NewLine) -notmatch '(?im)^\s*(?:-\s*)?name\s*:\s*[''\"]?cheapvibecode[''\"]?\s*(?:#.*)?$')) { $Current | ForEach-Object { $OtherProviders.Add($_) } }
+  $Current.Clear()
+}
+foreach ($Line in $Split.Section) {
+  if ($Line -match '^\s*-\s+') { Flush-HermesProvider; $Current.Add($Line) }
+  elseif ($Current.Count) { $Current.Add($Line) }
+  else { $OtherProviders.Add($Line) }
+}
+Flush-HermesProvider
+$Kept = New-Object System.Collections.Generic.List[string]
+$Main | ForEach-Object { $Kept.Add($_) }
+while ($Kept.Count -and [string]::IsNullOrWhiteSpace($Kept[$Kept.Count - 1])) { $Kept.RemoveAt($Kept.Count - 1) }
+if ($Kept.Count) { $Kept.Add('') }
+$Kept.Add('custom_providers:')
+$Provider | ForEach-Object { $Kept.Add($_) }
+$OtherProviders | ForEach-Object { $Kept.Add($_) }
+$Kept.Add('')
+$Kept.Add('model:')
+$Kept.Add('  provider: "custom:cheapvibecode"')
+$Kept.Add('  default: "${Object.keys(models).includes('claude-sonnet-4-6') ? 'claude-sonnet-4-6' : Object.keys(models)[0]}"')
+[IO.File]::WriteAllText($ConfigPath, ([string]::Join([Environment]::NewLine, $Kept) + [Environment]::NewLine), $Utf8)
+$EnvLines = New-Object System.Collections.Generic.List[string]
+if (Test-Path $EnvPath) { Get-Content $EnvPath -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*(?:CVC_API_KEY|CHEAPCODE_API_KEY)\s*=' } | ForEach-Object { $EnvLines.Add($_) } }
+while ($EnvLines.Count -and [string]::IsNullOrWhiteSpace($EnvLines[$EnvLines.Count - 1])) { $EnvLines.RemoveAt($EnvLines.Count - 1) }
+if ($EnvLines.Count) { $EnvLines.Add('') }
+$EnvLines.Add('CVC_API_KEY=' + $ApiKey); $EnvLines.Add('CHEAPCODE_API_KEY=' + $ApiKey)
+[IO.File]::WriteAllText($EnvPath, ([string]::Join([Environment]::NewLine, $EnvLines) + [Environment]::NewLine), $Utf8)
 [Environment]::SetEnvironmentVariable('CVC_API_KEY',$ApiKey,'User')
 [Environment]::SetEnvironmentVariable('CHEAPCODE_API_KEY',$ApiKey,'User')
-Write-Host "Hermes configured: $ConfigPath"`;
+Write-Host "Hermes configured: $ConfigPath"
+Write-Host "Backup: $Backup"`;
 
   if (clientId === 'grok') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
-$Dir = Join-Path $HOME '.grok'
+$Dir = if (-not [string]::IsNullOrWhiteSpace($env:GROK_CONFIG_DIR)) { $env:GROK_CONFIG_DIR } else { Join-Path $HOME '.grok' }
 $Path = Join-Path $Dir 'config.toml'
+$Backup = "$Path.bak.$(Get-Date -Format yyyyMMdd-HHmmss-fff)"
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+$Managed = @('${grokModelIds.join("','")}')
 New-Item -ItemType Directory -Force $Dir | Out-Null
-if (Test-Path $Path) { Copy-Item $Path "$Path.bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }
-$Config = @"
-[models]
-default = "grok-4.6"
-default_reasoning_effort = "medium"
-
-[model."grok-4.6"]
-model = "grok-4.6"
-base_url = "https://cheapvibecode.ru/v1"
-name = "grok-4.6"
-api_key = "$ApiKey"
-api_backend = "chat_completions"
-supports_reasoning_effort = true
-
-[model."grok-4.5"]
-model = "grok-4.5"
-base_url = "https://cheapvibecode.ru/v1"
-name = "grok-4.5"
-api_key = "$ApiKey"
-api_backend = "chat_completions"
-
-[model."composer-2.5-fast"]
-model = "composer-2.5-fast"
-base_url = "https://cheapvibecode.ru/v1"
-name = "composer-2.5-fast"
-api_key = "$ApiKey"
-api_backend = "chat_completions"
-"@
-Set-Content $Path $Config -Encoding UTF8
-Write-Host "Grok configured: $Path"`;
+if (Test-Path -LiteralPath $Path) { Copy-Item -LiteralPath $Path -Destination $Backup -Force }
+$InputLines = if (Test-Path -LiteralPath $Path) { @(Get-Content -LiteralPath $Path -Encoding UTF8) } else { @() }
+$Lines = New-Object System.Collections.Generic.List[string]
+$Skipping = $false; $InsideManagedBlock = $false
+foreach ($Line in $InputLines) {
+  if ($Line -eq '# >>> Prompt Port models >>>') { $InsideManagedBlock = $true; continue }
+  if ($Line -eq '# <<< Prompt Port models <<<') { $InsideManagedBlock = $false; $Skipping = $false; continue }
+  if ($InsideManagedBlock) { continue }
+  if ($Line -match '^\s*\[model\."?([^"\]]+)"?\]\s*$') { $Skipping = $Managed -contains $Matches[1] }
+  elseif ($Line -match '^\s*\[') { $Skipping = $false }
+  if (-not $Skipping) { $Lines.Add($Line) }
+}
+$ModelsIndex = -1
+for ($Index = 0; $Index -lt $Lines.Count; $Index++) { if ($Lines[$Index] -match '^\s*\[models\]\s*$') { $ModelsIndex = $Index; break } }
+if ($ModelsIndex -lt 0) {
+  $Lines.InsertRange(0, [string[]]@('[models]', 'default = "${grokConfigId(grokDefaultApiId)}"', 'default_reasoning_effort = "medium"', ''))
+} else {
+  $End = $Lines.Count
+  for ($Index = $ModelsIndex + 1; $Index -lt $Lines.Count; $Index++) { if ($Lines[$Index] -match '^\s*\[') { $End = $Index; break } }
+  for ($Index = $End - 1; $Index -gt $ModelsIndex; $Index--) { if ($Lines[$Index] -match '^\s*(?:default|default_reasoning_effort)\s*=') { $Lines.RemoveAt($Index) } }
+  $Lines.Insert($ModelsIndex + 1, 'default_reasoning_effort = "medium"')
+  $Lines.Insert($ModelsIndex + 1, 'default = "${grokConfigId(grokDefaultApiId)}"')
+}
+while ($Lines.Count -and [string]::IsNullOrWhiteSpace($Lines[$Lines.Count - 1])) { $Lines.RemoveAt($Lines.Count - 1) }
+$Lines.Add('')
+$Lines.Add('# >>> Prompt Port models >>>')
+$Block = @'
+${grokModelBlock}
+'@
+$Block -split [Environment]::NewLine | ForEach-Object { $Lines.Add($_) }
+$Lines.Add('# <<< Prompt Port models <<<')
+[IO.File]::WriteAllText($Path, ([string]::Join([Environment]::NewLine, $Lines) + [Environment]::NewLine), $Utf8)
+Write-Host "Grok Build configured with $($Managed.Count) models: $Path"
+if (Test-Path -LiteralPath $Backup) { Write-Host "Backup: $Backup" }`;
 
   if (clientId === 'opencode') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
-$Dir = Join-Path $HOME '.config\opencode'
-$Path = Join-Path $Dir 'opencode.json'
+$BaseUrl = 'https://cheapvibecode.ru/v1'
+$Candidates = @()
+if (-not [string]::IsNullOrWhiteSpace($env:OPENCODE_CONFIG_PATH)) { $Candidates += $env:OPENCODE_CONFIG_PATH }
+$Candidates += @((Join-Path $HOME '.config\opencode\opencode.jsonc'), (Join-Path $HOME '.config\opencode\opencode.json'), (Join-Path $HOME '.local\share\opencode\opencode.jsonc'), (Join-Path $HOME '.local\share\opencode\opencode.json'))
+$Path = @($Candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1)
+if (-not $Path) { $Path = if (-not [string]::IsNullOrWhiteSpace($env:OPENCODE_CONFIG_PATH)) { $env:OPENCODE_CONFIG_PATH } else { Join-Path $HOME '.config\opencode\opencode.json' } }
+$Path = [string]$Path
+$Dir = Split-Path -Parent $Path
+$Backup = "$Path.bak.$(Get-Date -Format yyyyMMdd-HHmmss-fff)"
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
 New-Item -ItemType Directory -Force $Dir | Out-Null
-if (Test-Path $Path) { Copy-Item $Path "$Path.bak.$(Get-Date -Format yyyyMMdd-HHmmss)" }
-$Models = [ordered]@{
-${modelLines}
+if (Test-Path -LiteralPath $Path) { Copy-Item -LiteralPath $Path -Destination $Backup -Force }
+$Config = [pscustomobject]@{}
+if (Test-Path -LiteralPath $Path) {
+  try {
+    $Raw = Get-Content -LiteralPath $Path -Raw -Encoding UTF8
+    $Json = (($Raw -split [Environment]::NewLine) | Where-Object { -not $_.TrimStart().StartsWith('//') }) -join [Environment]::NewLine
+    if (-not [string]::IsNullOrWhiteSpace($Json)) { $Config = $Json | ConvertFrom-Json }
+  } catch { throw "OpenCode config is not valid JSON/JSONC. Backup: $Backup" }
 }
-$Config = [ordered]@{ '$schema'='https://opencode.ai/config.json'; model='cheapvibecode/gpt-5.6-terra'; small_model='cheapvibecode/claude-haiku-4-5'; provider=[ordered]@{ cheapvibecode=[ordered]@{ npm='@ai-sdk/openai-compatible'; name='CheapVibeCode'; options=[ordered]@{ baseURL='https://cheapvibecode.ru/v1'; apiKey=$ApiKey }; models=$Models } } }
-$Config | ConvertTo-Json -Depth 100 | Set-Content $Path -Encoding UTF8
-Write-Host "OpenCode configured: $Path"`;
+if ($null -eq $Config -or $Config -isnot [pscustomobject]) { throw "OpenCode config must contain a JSON object. Backup: $Backup" }
+$Models = ConvertFrom-Json @'
+${modelJson}
+'@
+$ProviderRoot = if (($Config.PSObject.Properties.Name -contains 'provider') -and ($Config.provider -is [pscustomobject])) { $Config.provider } else { [pscustomobject]@{} }
+$CvcProvider = [pscustomobject]@{ npm='@ai-sdk/openai-compatible'; name='CheapVibeCode'; options=[pscustomobject]@{ baseURL=$BaseUrl; apiKey=$ApiKey; headers=[pscustomobject]@{ 'X-CheapVibeCode-Client'='opencode' } }; models=$Models }
+Set-Value $ProviderRoot 'cheapvibecode' $CvcProvider
+Set-Value $Config 'provider' $ProviderRoot
+$Ids = @($Models.PSObject.Properties.Name)
+$DefaultId = if ($Ids -contains 'gpt-5.6-terra') { 'gpt-5.6-terra' } elseif ($Ids.Count) { $Ids[0] } else { throw 'No supported models are available.' }
+$SmallId = if ($Ids -contains 'claude-haiku-4-5') { 'claude-haiku-4-5' } else { $DefaultId }
+Set-Value $Config '$schema' 'https://opencode.ai/config.json'
+Set-Value $Config 'model' "cheapvibecode/$DefaultId"
+Set-Value $Config 'small_model' "cheapvibecode/$SmallId"
+[IO.File]::WriteAllText($Path, ($Config | ConvertTo-Json -Depth 100) + [Environment]::NewLine, $Utf8)
+Write-Host "OpenCode configured: $Path"
+if (Test-Path -LiteralPath $Backup) { Write-Host "Backup: $Backup" }`;
 
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') return String.raw`$ErrorActionPreference = 'Stop'
 $ApiKey = '${key}'
 $Dir = Join-Path $HOME '.codex'
-$Stamp = Get-Date -Format yyyyMMdd-HHmmss
-New-Item -ItemType Directory -Force $Dir | Out-Null
-foreach ($Name in @('config.toml','auth.json','.env','cheapvibecode.env')) { $Path = Join-Path $Dir $Name; if (Test-Path $Path) { Copy-Item $Path "$Path.bak.$Stamp" } }
-@'
-model = "gpt-5.6-terra"
-model_reasoning_effort = "high"
-model_provider = "cheapvibecode"
-web_search = "live"
-
-[model_providers.cheapvibecode]
-name = "CheapVibeCode"
-base_url = "https://cheapvibecode.ru/backend-api/codex"
-wire_api = "responses"
-env_key = "CVC_API_KEY"
-supports_websockets = false
-requires_openai_auth = true
-'@ | Set-Content (Join-Path $Dir 'config.toml') -Encoding UTF8
-[ordered]@{ auth_mode='apikey'; OPENAI_API_KEY=$ApiKey } | ConvertTo-Json | Set-Content (Join-Path $Dir 'auth.json') -Encoding UTF8
-('CVC_API_KEY=' + $ApiKey + [Environment]::NewLine + 'OPENAI_API_KEY=' + $ApiKey + [Environment]::NewLine + 'OPENAI_BASE_URL=https://cheapvibecode.ru/v1') | Set-Content (Join-Path $Dir '.env') -Encoding UTF8
-Copy-Item (Join-Path $Dir '.env') (Join-Path $Dir 'cheapvibecode.env') -Force
+$Stamp = Get-Date -Format yyyyMMdd-HHmmss-fff
+$Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-${clientId}-$Stamp")
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+New-Item -ItemType Directory -Force $Dir, $Backup | Out-Null
+foreach ($Name in @('config.toml','auth.json','.env','cheapvibecode.env')) { $Path = Join-Path $Dir $Name; if (Test-Path $Path) { Copy-Item $Path (Join-Path $Backup $Name) -Force } }
+$ConfigPath = Join-Path $Dir 'config.toml'
+$InputLines = if (Test-Path $ConfigPath) { @(Get-Content $ConfigPath -Encoding UTF8) } else { @() }
+$Kept = New-Object System.Collections.Generic.List[string]
+$Skip = $false; $InTop = $true
+foreach ($Line in $InputLines) {
+  if ($Line -match '^\s*\[') {
+    $InTop = $false
+    $Skip = $Line -match '^\s*\[model_providers\.cheapvibecode\]\s*$'
+    if ($Skip) { continue }
+  }
+  if ($Skip) { continue }
+  if ($InTop -and $Line -match '^\s*(?:model|model_reasoning_effort|model_provider|web_search)\s*=') { continue }
+  $Kept.Add($Line)
+}
+while ($Kept.Count -and [string]::IsNullOrWhiteSpace($Kept[0])) { $Kept.RemoveAt(0) }
+$Managed = @('model = "gpt-5.6-terra"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true','')
+$Out = New-Object System.Collections.Generic.List[string]; $Managed | ForEach-Object { $Out.Add($_) }; $Kept | ForEach-Object { $Out.Add($_) }
+[IO.File]::WriteAllText($ConfigPath, ([string]::Join([Environment]::NewLine, $Out).TrimEnd() + [Environment]::NewLine), $Utf8)
+$AuthPath = Join-Path $Dir 'auth.json'; $Auth = [pscustomobject]@{}
+if (Test-Path $AuthPath) { try { $Raw=Get-Content $AuthPath -Raw -Encoding UTF8; if (-not [string]::IsNullOrWhiteSpace($Raw)) { $Auth=$Raw|ConvertFrom-Json } } catch { throw "Codex auth.json is invalid. Backup: $Backup" } }
+if ($null -eq $Auth -or $Auth -isnot [pscustomobject]) { $Auth=[pscustomobject]@{} }
+function Set-Value($Object,$Name,$Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name=$Value } else { $Object|Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
+Set-Value $Auth 'auth_mode' 'apikey'; Set-Value $Auth 'OPENAI_API_KEY' $ApiKey
+[IO.File]::WriteAllText($AuthPath, ($Auth|ConvertTo-Json -Depth 30)+[Environment]::NewLine, $Utf8)
+function Write-Env($Path) {
+  $Lines=New-Object System.Collections.Generic.List[string]
+  if(Test-Path $Path){Get-Content $Path -Encoding UTF8|Where-Object{$_ -notmatch '^\s*(?:CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)\s*='}|ForEach-Object{$Lines.Add($_)}}
+  while($Lines.Count -and [string]::IsNullOrWhiteSpace($Lines[$Lines.Count-1])){$Lines.RemoveAt($Lines.Count-1)}
+  if($Lines.Count){$Lines.Add('')}; $Lines.Add('CVC_API_KEY='+$ApiKey); $Lines.Add('OPENAI_API_KEY='+$ApiKey); $Lines.Add('OPENAI_BASE_URL=https://cheapvibecode.ru/v1')
+  [IO.File]::WriteAllText($Path,([string]::Join([Environment]::NewLine,$Lines)+[Environment]::NewLine),$Utf8)
+}
+Write-Env (Join-Path $Dir '.env'); Write-Env (Join-Path $Dir 'cheapvibecode.env')
 [Environment]::SetEnvironmentVariable('CVC_API_KEY',$ApiKey,'User')
 [Environment]::SetEnvironmentVariable('OPENAI_API_KEY',$ApiKey,'User')
 [Environment]::SetEnvironmentVariable('OPENAI_BASE_URL','https://cheapvibecode.ru/v1','User')
 Write-Host "Codex configured: $Dir"
-Write-Host 'Restart the client'`;
+Write-Host "Backup: $Backup"
+Write-Host 'Restart the client. Existing chats were not changed.'`;
 
   return '';
 }
@@ -4507,76 +4663,289 @@ PROMPT_PORT_CONFIG`;
 function unixShellInstall(clientId, os) {
   const key = 'ВАШ_API_КЛЮЧ';
   const models = localInstallModelEntries();
+  const modelJson = JSON.stringify(models, null, 2);
+  const grokDefaultApiId = ['grok-4.6', 'grok-4.5', 'gpt-5.6-terra', 'gpt-5.4', 'composer-2.5-fast'].find(id => models[id]) || Object.keys(models)[0];
+  const grokConfigId = id => id === 'composer-2.5-fast' ? 'grok-composer-2.5-fast' : id;
+  const grokModelBlock = Object.entries(models).map(([id, value]) => `[model."${grokConfigId(id)}"]\nmodel = "${id}"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "${id}"\ndescription = "${value.name}"\napi_key = "${key}"\napi_backend = "chat_completions"\ncontext_window = ${value.limit.context}`).join('\n\n');
   const stamp = 'STAMP=$(date +%Y%m%d-%H%M%S)';
 
-  if (clientId === 'claude-code') {
-    const config = JSON.stringify({ env: { ANTHROPIC_BASE_URL: 'https://ru.cheapvibecode.ru', ANTHROPIC_AUTH_TOKEN: key, ANTHROPIC_MODEL: 'claude-sonnet-4-6' } }, null, 2);
-    return `${stamp}\n${unixShellFile('$HOME/.claude/settings.json', config)}\nprintf '%s\\n' 'Claude Code configured. Restart the client.'`;
-  }
+  if (clientId === 'claude-code') return `set -euo pipefail
+API_KEY='${key}'
+BASE_URL='https://ru.cheapvibecode.ru'
+DIR="$HOME/.claude"
+SETTINGS="$DIR/settings.json"
+BACKUP="$DIR/backups/prompt-port-claude-code-$(date +%Y%m%d-%H%M%S)"
+if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge Claude Code settings.' >&2; exit 1; fi
+mkdir -p "$DIR" "$BACKUP"
+[ ! -f "$SETTINGS" ] || cp "$SETTINGS" "$BACKUP/settings.json"
+export PROMPT_PORT_CLAUDE_PATH="$SETTINGS" PROMPT_PORT_CLAUDE_URL="$BASE_URL" PROMPT_PORT_CLAUDE_KEY="$API_KEY"
+node <<'PROMPT_PORT_NODE'
+const fs = require('fs');
+const path = process.env.PROMPT_PORT_CLAUDE_PATH;
+let data = {};
+try {
+  const raw = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '';
+  data = raw.trim() ? JSON.parse(raw) : {};
+} catch (error) { console.error('Claude settings are not valid JSON: ' + error.message); process.exit(1); }
+if (!data || typeof data !== 'object' || Array.isArray(data)) { console.error('Claude settings must contain a JSON object.'); process.exit(1); }
+if (!data.env || typeof data.env !== 'object' || Array.isArray(data.env)) data.env = {};
+data.env.ANTHROPIC_BASE_URL = process.env.PROMPT_PORT_CLAUDE_URL;
+data.env.ANTHROPIC_AUTH_TOKEN = process.env.PROMPT_PORT_CLAUDE_KEY;
+if (!data.sandbox || typeof data.sandbox !== 'object' || Array.isArray(data.sandbox)) data.sandbox = {};
+if (!data.sandbox.network || typeof data.sandbox.network !== 'object' || Array.isArray(data.sandbox.network)) data.sandbox.network = {};
+data.sandbox.network.allowedDomains = ['*'];
+fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
+PROMPT_PORT_NODE
+chmod 600 "$SETTINGS"
+printf '%s\n' 'Claude Code configured.' "Backup: $BACKUP"`;
 
-  if (clientId === 'claude-app' && os === 'mac') return `${stamp}
+  if (clientId === 'claude-app' && os === 'mac') return `set -euo pipefail
+API_KEY='${key}'
+BASE_URL='https://ru.cheapvibecode.ru'
 DIR="$HOME/Library/Application Support/Claude-3p"
-GUID=$(uuidgen | tr '[:upper:]' '[:lower:]')
-mkdir -p "$DIR/configLibrary"
-[ ! -f "$DIR/claude_desktop_config.json" ] || cp "$DIR/claude_desktop_config.json" "$DIR/claude_desktop_config.json.bak.$STAMP"
-[ ! -f "$DIR/configLibrary/_meta.json" ] || cp "$DIR/configLibrary/_meta.json" "$DIR/configLibrary/_meta.json.bak.$STAMP"
-cat > "$DIR/claude_desktop_config.json" <<'PROMPT_PORT_CONFIG'
-{
-  "deploymentMode": "3p",
-  "enterpriseConfig": {
-    "inferenceProvider": "gateway",
-    "inferenceGatewayBaseUrl": "https://ru.cheapvibecode.ru",
-    "inferenceGatewayApiKey": "${key}",
-    "inferenceGatewayAuthScheme": "bearer",
-    "modelDiscoveryEnabled": true,
-    "coworkEgressAllowedHosts": ["*"]
-  }
+SETTINGS="$DIR/claude_desktop_config.json"
+LIBRARY="$DIR/configLibrary"
+META="$LIBRARY/_meta.json"
+BACKUP="$DIR/backups/prompt-port-claude-app-$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$DIR" "$LIBRARY" "$BACKUP"
+[ ! -f "$SETTINGS" ] || cp "$SETTINGS" "$BACKUP/claude_desktop_config.json"
+[ ! -f "$META" ] || cp "$META" "$BACKUP/configLibrary-meta.json"
+ensure_object() {
+  local path="$1" first=''
+  [ ! -f "$path" ] || first=$(/usr/bin/plutil -p "$path" 2>/dev/null | head -c 1 || true)
+  if [ ! -f "$path" ] || ! /usr/bin/plutil -convert json -o /dev/null "$path" >/dev/null 2>&1 || [ "$first" != '{' ]; then
+    printf '{"__prompt_port_seed__":true}\n' > "$path"
+  fi
 }
-PROMPT_PORT_CONFIG
-cat > "$DIR/configLibrary/_meta.json" <<PROMPT_PORT_CONFIG
-{"appliedId":"$GUID","entries":[{"id":"$GUID","name":"CheapVibeCode"}]}
-PROMPT_PORT_CONFIG
-cat > "$DIR/configLibrary/$GUID.json" <<'PROMPT_PORT_CONFIG'
-{
-  "inferenceProvider": "gateway",
-  "inferenceGatewayBaseUrl": "https://ru.cheapvibecode.ru",
-  "inferenceGatewayApiKey": "${key}",
-  "inferenceGatewayAuthScheme": "bearer",
-  "modelDiscoveryEnabled": true,
-  "coworkEgressAllowedHosts": ["*"]
+put_string() {
+  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -string "$3" "$1"; else /usr/bin/plutil -insert "$2" -string "$3" "$1"; fi
 }
-PROMPT_PORT_CONFIG
-printf '%s\n' 'Claude App configured. Restart the app.'`;
+put_bool() {
+  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -bool "$3" "$1"; else /usr/bin/plutil -insert "$2" -bool "$3" "$1"; fi
+}
+put_json() {
+  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -json "$3" "$1"; else /usr/bin/plutil -insert "$2" -json "$3" "$1"; fi
+}
+set_gateway() {
+  local path="$1" prefix="\${2:-}"
+  put_string "$path" "\${prefix}inferenceProvider" 'gateway'
+  put_string "$path" "\${prefix}inferenceGatewayBaseUrl" "$BASE_URL"
+  put_string "$path" "\${prefix}inferenceGatewayApiKey" "$API_KEY"
+  put_string "$path" "\${prefix}inferenceGatewayAuthScheme" 'bearer'
+  put_bool "$path" "\${prefix}modelDiscoveryEnabled" true
+  put_json "$path" "\${prefix}coworkEgressAllowedHosts" '["*"]'
+  /usr/bin/plutil -remove "\${prefix}inferenceGatewayHeaders" "$path" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove "\${prefix}inferenceCustomHeaders" "$path" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove "\${prefix}inferenceModels" "$path" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove '__prompt_port_seed__' "$path" >/dev/null 2>&1 || true
+}
+ensure_object "$SETTINGS"
+put_string "$SETTINGS" deploymentMode 3p
+if ! /usr/bin/plutil -extract enterpriseConfig raw -expect dictionary "$SETTINGS" >/dev/null 2>&1; then
+  /usr/bin/plutil -remove enterpriseConfig "$SETTINGS" >/dev/null 2>&1 || true
+  /usr/bin/plutil -insert enterpriseConfig -dictionary "$SETTINGS"
+fi
+set_gateway "$SETTINGS" 'enterpriseConfig.'
+GUID=$(/usr/bin/plutil -extract appliedId raw -n "$META" 2>/dev/null || true)
+if ! printf '%s' "$GUID" | grep -Eq '^[a-fA-F0-9-]{36}$'; then GUID=$(/usr/bin/uuidgen | tr '[:upper:]' '[:lower:]'); fi
+ensure_object "$META"
+put_string "$META" appliedId "$GUID"
+if ! /usr/bin/plutil -extract entries raw -expect array "$META" >/dev/null 2>&1; then put_json "$META" entries "[{\\\"id\\\":\\\"$GUID\\\",\\\"name\\\":\\\"CheapVibeCode\\\"}]"; fi
+/usr/bin/plutil -remove '__prompt_port_seed__' "$META" >/dev/null 2>&1 || true
+PROFILE="$LIBRARY/$GUID.json"
+[ ! -f "$PROFILE" ] || cp "$PROFILE" "$BACKUP/active-profile.json"
+ensure_object "$PROFILE"
+set_gateway "$PROFILE"
+chmod 600 "$SETTINGS" "$META" "$PROFILE"
+osascript -e 'tell application "Claude" to quit' >/dev/null 2>&1 || true
+sleep 1
+open -a 'Claude' || true
+printf '%s\n' 'Claude App configured.' "Backup: $BACKUP"`;
 
   if (clientId === 'hermes') {
     const yamlModels = Object.keys(models).map(id => `      "${id}": {}`).join('\n');
-    const yaml = `custom_providers:\n  - name: "cheapvibecode"\n    base_url: "https://cheapvibecode.ru/v1"\n    key_env: "CVC_API_KEY"\n    api_mode: chat_completions\n    models:\n${yamlModels}\n\nmodel:\n  provider: "custom:cheapvibecode"\n  default: "claude-sonnet-4-6"`;
-    return `${stamp}\n${unixShellFile('$HOME/.hermes/config.yaml', yaml)}\n${unixShellFile('$HOME/.hermes/.env', `CVC_API_KEY=${key}\nCHEAPCODE_API_KEY=${key}`)}\nprintf '%s\\n' 'Hermes configured. Restart the client.'`;
+    const defaultModel = Object.keys(models).includes('claude-sonnet-4-6') ? 'claude-sonnet-4-6' : Object.keys(models)[0];
+    return `set -euo pipefail
+API_KEY='${key}'
+if [ -n "\${HERMES_HOME:-}" ]; then DIR="$HERMES_HOME"; else DIR="$HOME/.hermes"; fi
+CONFIG="$DIR/config.yaml"
+ENV_FILE="$DIR/.env"
+BACKUP="$DIR/backups/prompt-port-hermes-$(date +%Y%m%d-%H%M%S)"
+if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge Hermes settings.' >&2; exit 1; fi
+mkdir -p "$DIR" "$BACKUP"
+[ ! -f "$CONFIG" ] || cp "$CONFIG" "$BACKUP/config.yaml"
+[ ! -f "$ENV_FILE" ] || cp "$ENV_FILE" "$BACKUP/.env"
+export PROMPT_PORT_HERMES_CONFIG="$CONFIG" PROMPT_PORT_HERMES_ENV="$ENV_FILE" PROMPT_PORT_HERMES_KEY="$API_KEY"
+node <<'PROMPT_PORT_NODE'
+const fs = require('fs');
+const configPath = process.env.PROMPT_PORT_HERMES_CONFIG;
+const envPath = process.env.PROMPT_PORT_HERMES_ENV;
+let lines = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8').split(/\r?\n/) : [];
+function splitSection(source, name) {
+  const main = [], section = []; let capture = false;
+  for (const line of source) {
+    if (capture && /^[A-Za-z0-9_.-]+\s*:/.test(line)) capture = false;
+    if (!capture && new RegExp('^' + name.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&') + '\\s*:').test(line)) { capture = true; continue; }
+    (capture ? section : main).push(line);
+  }
+  return { main, section };
+}
+const custom = splitSection(lines, 'custom_providers');
+const model = splitSection(custom.main, 'model');
+const blocks = []; let current = [];
+for (const line of custom.section) { if (/^\s*-\s+/.test(line) && current.length) { blocks.push(current); current = []; } current.push(line); }
+if (current.length) blocks.push(current);
+const otherProviders = blocks.filter(block => !/^\s*(?:-\s*)?name\s*:\s*['"]?cheapvibecode['"]?\s*(?:#.*)?$/im.test(block.join('\n'))).flat();
+while (model.main.length && !model.main.at(-1).trim()) model.main.pop();
+const managed = \`custom_providers:
+  - name: "cheapvibecode"
+    base_url: "https://cheapvibecode.ru/v1"
+    key_env: "CVC_API_KEY"
+    api_mode: chat_completions
+    models:
+${yamlModels}
+\${otherProviders.join('\n')}
+
+model:
+  provider: "custom:cheapvibecode"
+  default: "${defaultModel}"\`;
+fs.writeFileSync(configPath, (model.main.length ? model.main.join('\n') + '\n\n' : '') + managed + '\n', { mode: 0o600 });
+let env = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/) : [];
+env = env.filter(line => !/^\s*(?:export\s+)?(?:CVC_API_KEY|CHEAPCODE_API_KEY)\s*=/.test(line));
+while (env.length && !env.at(-1).trim()) env.pop();
+if (env.length) env.push('');
+env.push('CVC_API_KEY=' + process.env.PROMPT_PORT_HERMES_KEY, 'CHEAPCODE_API_KEY=' + process.env.PROMPT_PORT_HERMES_KEY);
+fs.writeFileSync(envPath, env.join('\n') + '\n', { mode: 0o600 });
+PROMPT_PORT_NODE
+chmod 600 "$CONFIG" "$ENV_FILE"
+printf '%s\n' 'Hermes configured.' "Backup: $BACKUP"`;
   }
 
   if (clientId === 'grok') {
-    const config = `[models]\ndefault = "grok-4.6"\ndefault_reasoning_effort = "medium"\n\n[model."grok-4.6"]\nmodel = "grok-4.6"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "grok-4.6"\napi_key = "${key}"\napi_backend = "chat_completions"\nsupports_reasoning_effort = true\n\n[model."grok-4.5"]\nmodel = "grok-4.5"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "grok-4.5"\napi_key = "${key}"\napi_backend = "chat_completions"\n\n[model."composer-2.5-fast"]\nmodel = "composer-2.5-fast"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "composer-2.5-fast"\napi_key = "${key}"\napi_backend = "chat_completions"`;
-    return `${stamp}\n${unixShellFile('$HOME/.grok/config.toml', config)}\nprintf '%s\\n' 'Grok configured. Restart the client.'`;
+    return `set -euo pipefail
+API_KEY='${key}'
+DIR="\${GROK_CONFIG_DIR:-$HOME/.grok}"
+PATH_FILE="$DIR/config.toml"
+BACKUP="$PATH_FILE.bak.$(date +%Y%m%d-%H%M%S)"
+if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge Grok Build settings.' >&2; exit 1; fi
+mkdir -p "$DIR"
+[ ! -f "$PATH_FILE" ] || cp "$PATH_FILE" "$BACKUP"
+export PROMPT_PORT_GROK_PATH="$PATH_FILE" PROMPT_PORT_GROK_DEFAULT='${grokConfigId(grokDefaultApiId)}'
+node <<'PROMPT_PORT_NODE'
+const fs = require('fs');
+const path = process.env.PROMPT_PORT_GROK_PATH;
+let text = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '';
+text = text.replace(/(?:^|\n)# >>> Prompt Port models >>>[\s\S]*?# <<< Prompt Port models <<<\s*/g, '\n').trimEnd();
+let lines = text ? text.split(/\r?\n/) : [];
+let index = lines.findIndex(line => /^\s*\[models\]\s*$/.test(line));
+if (index < 0) lines.unshift('[models]', 'default = "' + process.env.PROMPT_PORT_GROK_DEFAULT + '"', 'default_reasoning_effort = "medium"', '');
+else {
+  let end = lines.findIndex((line, position) => position > index && /^\s*\[/.test(line));
+  if (end < 0) end = lines.length;
+  lines = lines.filter((line, position) => position <= index || position >= end || !/^\s*(?:default|default_reasoning_effort)\s*=/.test(line));
+  index = lines.findIndex(line => /^\s*\[models\]\s*$/.test(line));
+  lines.splice(index + 1, 0, 'default = "' + process.env.PROMPT_PORT_GROK_DEFAULT + '"', 'default_reasoning_effort = "medium"');
+}
+text = lines.join('\n').trimEnd();
+const block = String.raw\`# >>> Prompt Port models >>>
+${grokModelBlock}
+# <<< Prompt Port models <<<\`;
+fs.writeFileSync(path, (text ? text + '\n\n' : '') + block + '\n', { mode: 0o600 });
+PROMPT_PORT_NODE
+chmod 600 "$PATH_FILE"
+printf '%s\n' 'Grok Build configured.' "Backup: $BACKUP"`;
   }
 
   if (clientId === 'opencode') {
-    const config = JSON.stringify({ '$schema': 'https://opencode.ai/config.json', model: 'cheapvibecode/gpt-5.6-terra', small_model: 'cheapvibecode/claude-haiku-4-5', provider: { cheapvibecode: { npm: '@ai-sdk/openai-compatible', name: 'CheapVibeCode', options: { baseURL: 'https://cheapvibecode.ru/v1', apiKey: key }, models } } }, null, 2);
-    return `${stamp}\n${unixShellFile('$HOME/.config/opencode/opencode.json', config)}\nprintf '%s\\n' 'OpenCode configured. Restart the client.'`;
+    return `set -euo pipefail
+API_KEY='${key}'
+if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge OpenCode settings.' >&2; exit 1; fi
+if [ -n "\${OPENCODE_CONFIG_PATH:-}" ]; then PATH_FILE="$OPENCODE_CONFIG_PATH"; else
+  PATH_FILE=''
+  for candidate in "$HOME/.config/opencode/opencode.jsonc" "$HOME/.config/opencode/opencode.json" "$HOME/.local/share/opencode/opencode.jsonc" "$HOME/.local/share/opencode/opencode.json"; do [ ! -f "$candidate" ] || { PATH_FILE="$candidate"; break; }; done
+  [ -n "$PATH_FILE" ] || PATH_FILE="$HOME/.config/opencode/opencode.json"
+fi
+BACKUP="$PATH_FILE.bak.$(date +%Y%m%d-%H%M%S)"
+mkdir -p "$(dirname "$PATH_FILE")"
+[ ! -f "$PATH_FILE" ] || cp "$PATH_FILE" "$BACKUP"
+export PROMPT_PORT_OPENCODE_PATH="$PATH_FILE" PROMPT_PORT_OPENCODE_KEY="$API_KEY"
+node <<'PROMPT_PORT_NODE'
+const fs = require('fs');
+const path = process.env.PROMPT_PORT_OPENCODE_PATH;
+let config = {};
+try {
+  const raw = fs.existsSync(path) ? fs.readFileSync(path, 'utf8') : '';
+  const json = raw.split(/\r?\n/).filter(line => !line.trimStart().startsWith('//')).join('\n');
+  config = json.trim() ? JSON.parse(json) : {};
+} catch (error) { console.error('OpenCode config is not valid JSON/JSONC: ' + error.message); process.exit(1); }
+if (!config || typeof config !== 'object' || Array.isArray(config)) { console.error('OpenCode config must contain a JSON object.'); process.exit(1); }
+const models = ${modelJson};
+config.$schema = 'https://opencode.ai/config.json';
+if (!config.provider || typeof config.provider !== 'object' || Array.isArray(config.provider)) config.provider = {};
+config.provider.cheapvibecode = { npm: '@ai-sdk/openai-compatible', name: 'CheapVibeCode', options: { baseURL: 'https://cheapvibecode.ru/v1', apiKey: process.env.PROMPT_PORT_OPENCODE_KEY, headers: { 'X-CheapVibeCode-Client': 'opencode' } }, models };
+const ids = Object.keys(models);
+const normal = ids.includes('gpt-5.6-terra') ? 'gpt-5.6-terra' : ids[0];
+const small = ids.includes('claude-haiku-4-5') ? 'claude-haiku-4-5' : normal;
+if (!normal) { console.error('No supported models are available.'); process.exit(1); }
+config.model = 'cheapvibecode/' + normal;
+config.small_model = 'cheapvibecode/' + small;
+fs.writeFileSync(path, JSON.stringify(config, null, 2) + '\n', { mode: 0o600 });
+PROMPT_PORT_NODE
+chmod 600 "$PATH_FILE"
+printf '%s\n' 'OpenCode configured.' "Backup: $BACKUP"`;
   }
 
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') {
-    const config = `model = "gpt-5.6-terra"\nmodel_reasoning_effort = "high"\nmodel_provider = "cheapvibecode"\nweb_search = "live"\n\n[model_providers.cheapvibecode]\nname = "CheapVibeCode"\nbase_url = "https://cheapvibecode.ru/backend-api/codex"\nwire_api = "responses"\nenv_key = "CVC_API_KEY"\nsupports_websockets = false\nrequires_openai_auth = true`;
-    const auth = JSON.stringify({ auth_mode: 'apikey', OPENAI_API_KEY: key }, null, 2);
-    const env = `CVC_API_KEY=${key}\nOPENAI_API_KEY=${key}\nOPENAI_BASE_URL=https://cheapvibecode.ru/v1`;
-    return `${stamp}\n${unixShellFile('$HOME/.codex/config.toml', config)}\n${unixShellFile('$HOME/.codex/auth.json', auth)}\n${unixShellFile('$HOME/.codex/.env', env)}\n${unixShellFile('$HOME/.codex/cheapvibecode.env', env)}
+    return `set -euo pipefail
+API_KEY='${key}'
+DIR="$HOME/.codex"
+BACKUP="$DIR/backups/prompt-port-${clientId}-$(date +%Y%m%d-%H%M%S)"
+if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge Codex settings.' >&2; exit 1; fi
+mkdir -p "$DIR" "$BACKUP"
+for NAME in config.toml auth.json .env cheapvibecode.env; do [ ! -f "$DIR/$NAME" ] || cp "$DIR/$NAME" "$BACKUP/$NAME"; done
+export PROMPT_PORT_CODEX_DIR="$DIR" PROMPT_PORT_CODEX_KEY="$API_KEY"
+node <<'PROMPT_PORT_NODE'
+const fs = require('fs'), path = require('path');
+const dir = process.env.PROMPT_PORT_CODEX_DIR, key = process.env.PROMPT_PORT_CODEX_KEY;
+const configPath = path.join(dir, 'config.toml');
+let lines = fs.existsSync(configPath) ? fs.readFileSync(configPath, 'utf8').split(/\r?\n/) : [];
+const kept = []; let skip = false, inTop = true;
+for (const line of lines) {
+  if (/^\s*\[/.test(line)) { inTop = false; skip = /^\s*\[model_providers\.cheapvibecode\]\s*$/.test(line); if (skip) continue; }
+  if (skip) continue;
+  if (inTop && /^\s*(?:model|model_reasoning_effort|model_provider|web_search)\s*=/.test(line)) continue;
+  kept.push(line);
+}
+while (kept.length && !kept[0].trim()) kept.shift();
+const managed = ['model = "gpt-5.6-terra"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true',''];
+fs.writeFileSync(configPath, managed.concat(kept).join('\n').trimEnd() + '\n', { mode: 0o600 });
+const authPath = path.join(dir, 'auth.json'); let auth = {};
+try { const raw = fs.existsSync(authPath) ? fs.readFileSync(authPath, 'utf8') : ''; auth = raw.trim() ? JSON.parse(raw) : {}; }
+catch (error) { console.error('Codex auth.json is invalid: ' + error.message); process.exit(1); }
+if (!auth || typeof auth !== 'object' || Array.isArray(auth)) auth = {};
+auth.auth_mode = 'apikey'; auth.OPENAI_API_KEY = key;
+fs.writeFileSync(authPath, JSON.stringify(auth, null, 2) + '\n', { mode: 0o600 });
+for (const name of ['.env', 'cheapvibecode.env']) {
+  const target = path.join(dir, name); let env = fs.existsSync(target) ? fs.readFileSync(target, 'utf8').split(/\r?\n/) : [];
+  env = env.filter(line => !/^\s*(?:CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)\s*=/.test(line));
+  while (env.length && !env.at(-1).trim()) env.pop(); if (env.length) env.push('');
+  env.push('CVC_API_KEY=' + key, 'OPENAI_API_KEY=' + key, 'OPENAI_BASE_URL=https://cheapvibecode.ru/v1');
+  fs.writeFileSync(target, env.join('\n') + '\n', { mode: 0o600 });
+}
+PROMPT_PORT_NODE
+chmod 600 "$DIR/config.toml" "$DIR/auth.json" "$DIR/.env" "$DIR/cheapvibecode.env"
 for PROFILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
   [ -f "$PROFILE" ] || continue
-  cp "$PROFILE" "$PROFILE.bak.$STAMP"
-  sed -E '/^export (CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)=/d' "$PROFILE" > "$PROFILE.prompt-port.tmp"
-  printf '%s\n' "export CVC_API_KEY='${key}'" "export OPENAI_API_KEY='${key}'" "export OPENAI_BASE_URL='https://cheapvibecode.ru/v1'" >> "$PROFILE.prompt-port.tmp"
-  mv "$PROFILE.prompt-port.tmp" "$PROFILE"
+  cp "$PROFILE" "$BACKUP/$(basename "$PROFILE")"
+  TMP="$PROFILE.prompt-port.tmp.$$"
+  sed -E '/^export (CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)=/d' "$PROFILE" > "$TMP"
+  printf '%s\n' "export CVC_API_KEY='${key}'" "export OPENAI_API_KEY='${key}'" "export OPENAI_BASE_URL='https://cheapvibecode.ru/v1'" >> "$TMP"
+  mv "$TMP" "$PROFILE"
 done
-printf '%s\n' 'Codex configured. Restart the client.'`;
+${os === 'mac' && clientId === 'codex-app' ? `launchctl setenv CVC_API_KEY "$API_KEY" || true
+launchctl setenv OPENAI_API_KEY "$API_KEY" || true
+launchctl setenv OPENAI_BASE_URL 'https://cheapvibecode.ru/v1' || true` : ''}
+printf '%s\n' 'Codex configured. Existing chats were not changed.' "Backup: $BACKUP" 'Restart the client.'`;
   }
 
   return '';
@@ -4593,6 +4962,19 @@ function localInstallCommand(os, clientId) {
   ]);
   if (!supported.has(`${os}:${clientId}`)) return '';
   return os === 'windows' ? windowsLocalInstall(clientId) : unixShellInstall(clientId, os);
+}
+
+function cursorManualGuide(os) {
+  const available = (Array.isArray(models) && models.length ? models : modelCatalog)
+    .filter(row => row?.[3] !== 'unavailable')
+    .map(row => String(row?.[0] || '').trim())
+    .filter(id => /^[a-z0-9][a-z0-9._:-]*$/i.test(id) && !id.endsWith('-cursor'))
+    .map(id => `${id}-cursor`);
+  const unique = [...new Set(available)];
+  const preferred = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'claude-sonnet-4-6-cursor'];
+  const defaultModel = preferred.find(id => unique.includes(id)) || unique[0] || 'gpt-5.6-terra-cursor';
+  if (state.language === 'en') return `Open Cursor → Settings → Models and add an OpenAI-compatible API:\n\nBase URL: https://cheapvibecode.ru/v1\nAPI key: ВАШ_API_КЛЮЧ\nModel: ${defaultModel}\n\nAdd only models available to this key:\n\n${unique.join('\n')}`;
+  return `Откройте Cursor → Settings → Models и добавьте OpenAI-совместимый API:\n\nBase URL: https://cheapvibecode.ru/v1\nAPI key: ВАШ_API_КЛЮЧ\nModel: ${defaultModel}\n\nДобавьте только доступные этому ключу модели:\n\n${unique.join('\n')}`;
 }
 
 // Every entry is explicitly keyed by both OS and client to prevent commands
@@ -4687,6 +5069,37 @@ function normalizeModelStatus(model) {
   return 'available';
 }
 
+function liveModelProvider(modelId, ownedBy = '') {
+  const id = String(modelId || '').toLowerCase();
+  const owner = String(ownedBy || '').toLowerCase();
+  if (/^gpt-|^o\d/.test(id) || owner === 'openai') return 'OpenAI';
+  if (id.startsWith('claude-') || owner === 'anthropic') return 'Anthropic';
+  if (/^gemini-|^gemma-/.test(id) || owner === 'google') return 'Google';
+  if (/^grok-|^composer-/.test(id) || owner === 'xai') return 'xAI';
+  if (id.startsWith('deepseek-')) return 'DeepSeek';
+  if (id.startsWith('qwen')) return 'Alibaba';
+  if (id.startsWith('glm-')) return 'Z AI';
+  if (id.startsWith('kimi-')) return 'Moonshot';
+  if (id.startsWith('mimo-')) return 'Xiaomi';
+  if (id.startsWith('minimax-')) return 'MiniMax';
+  if (id.startsWith('nemotron-')) return 'NVIDIA';
+  return ownedBy || 'Other';
+}
+
+function liveModelCoefficient(model) {
+  const raw = model?.coefficient ?? model?.multiplier ?? model?.usage_multiplier ?? model?.price_multiplier;
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? String(value) : '1';
+}
+
+function isTextModel(model) {
+  const id = String(model?.id || '').trim().toLowerCase();
+  if (!/^[a-z0-9][a-z0-9._:-]*$/i.test(id)) return false;
+  if (/^(?:gpt-image|image-|dall-e|sora-|tts-|whisper-|audio-|video-)/.test(id) || id.endsWith('-cursor')) return false;
+  const outputs = model?.output_modalities ?? model?.modalities?.output;
+  return !Array.isArray(outputs) || outputs.length === 0 || outputs.map(String).some(value => value.toLowerCase() === 'text');
+}
+
 function setServiceState(service, status) {
   if (!Object.prototype.hasOwnProperty.call(state.services, service)) return;
   state.services[service] = ['checking', 'online', 'degraded', 'offline'].includes(status) ? status : 'idle';
@@ -4771,11 +5184,17 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
 
     if (data && data.data && Array.isArray(data.data)) {
       const liveModels = new Map(data.data
-        .filter(model => model && model.id)
+        .filter(isTextModel)
         .map(model => [String(model.id).toLowerCase(), model]));
       const loadedModels = modelCatalog.map(([modelId, provider, coefficient]) => {
         const liveModel = liveModels.get(modelId.toLowerCase());
-        return [modelId, provider, coefficient, liveModel ? normalizeModelStatus(liveModel) : 'unavailable'];
+        return [modelId, provider, coefficient, liveModel ? normalizeModelStatus(liveModel) : 'unavailable', liveModel || null];
+      });
+      const knownIds = new Set(modelCatalog.map(([modelId]) => modelId.toLowerCase()));
+      liveModels.forEach((liveModel, lowerId) => {
+        if (knownIds.has(lowerId)) return;
+        const modelId = String(liveModel.id).trim();
+        loadedModels.push([modelId, liveModelProvider(modelId, liveModel.owned_by), liveModelCoefficient(liveModel), normalizeModelStatus(liveModel), liveModel]);
       });
 
       if (requestId === modelsRequestId && loadedModels.length > 0) {
@@ -4786,6 +5205,7 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
         renderChatModels();
         const modelCount = $('#modelCount');
         if (modelCount) modelCount.textContent = String(models.length);
+        if (state.activeApp) renderGuide();
         setServiceState('models', modelCatalogServiceStatus(loadedModels));
         return true;
       }
@@ -5580,7 +6000,7 @@ function renderGuide() {
   const localAuto = localInstallCommand(state.os, item.id);
   const auto = localAuto ? runtimeText(localAuto, item.id) : '';
   const removal = removalCommands[state.os]?.[item.id] || '';
-  const manual = runtimeText(item.manual, item.id);
+  const manual = runtimeText(item.id === 'cursor' ? cursorManualGuide(state.os) : item.manual, item.id);
   const blocks = guideBlocks(manual);
   const index = items.indexOf(item) + 1;
 
