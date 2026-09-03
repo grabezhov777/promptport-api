@@ -2594,7 +2594,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <span class="nav-label" data-i18n="nav_chat">Чат</span><span class="nav-beta">BETA</span>
       </button>
       <button class="nav-link" data-view="models">
-        <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">34</span>
+        <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">35</span>
       </button>
       <button class="nav-link" data-view="usage">
         <span class="nav-label" data-i18n="nav_usage">История</span>
@@ -5205,17 +5205,18 @@ const modelCatalog = [
   ['claude-opus-4-8', 'Anthropic', '4'], ['claude-opus-4-7', 'Anthropic', '4'],
   ['claude-sonnet-5', 'Anthropic', '2'], ['claude-sonnet-4-6', 'Anthropic', '2'],
   ['claude-opus-4-6', 'Anthropic', '4'], ['claude-haiku-4-5', 'Anthropic', '0.9'],
-  ['gemini-3.7-flash', 'Google', '1'], ['gemini-3.5-flash', 'Google', '1'],
-  ['gemini-3.6-flash', 'Google', '1'], ['gemini-3.1-pro', 'Google', '2'],
+  ['gemini-3.7-flash', 'Google', '1'], ['gemini-3.8-flash', 'Google', '1'],
+  ['gemini-3.5-flash', 'Google', '1'], ['gemini-3.6-flash', 'Google', '1'],
+  ['gemini-3.1-pro', 'Google', '2'],
   ['grok-4.6', 'xAI', '0.8'], ['grok-4.5', 'xAI', '0.8'],
-  ['composer-2.5-fast', 'xAI', '0.5'],
-  ['kimi-k3', 'Moonshot', '5.5'], ['qwen3.8-max', 'Alibaba', '0.05'],
-  ['glm-5.3', 'Z AI', '1.9'], ['glm-5.3-flash', 'Z AI', '0.5'],
+  ['kimi-k3', 'Moonshot', '4'], ['qwen3.8-max', 'Alibaba', '3'],
+  ['hy4-preview', 'HY', '1'], ['glm-5.3', 'Z AI', '1.9'],
+  ['qwen3.8-flash', 'Alibaba', '1'], ['glm-5.3-flash', 'Z AI', '0.5'],
   ['deepseek-v4-pro', 'DeepSeek', '0.6'], ['deepseek-v4-flash', 'DeepSeek', '0.1'],
-  ['glm-5.2', 'Z AI', '1.9'], ['qwen3.7-max', 'Alibaba', '0.05'],
+  ['glm-5.2', 'Z AI', '1.9'],
   ['minimax-m3', 'MiniMax', '0.45'], ['kimi-k2.7-code', 'Moonshot', '1.5'],
-  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['qwen3.7-plus', 'Alibaba', '0.05'],
-  ['glm-5-turbo', 'Z AI', '1.38']
+  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['glm-5-turbo', 'Z AI', '1.38'],
+  ['mimo-v2.5', 'Xiaomi', '0.05']
 ];
 let models = modelCatalog.map(model => [...model]);
 
@@ -6211,9 +6212,10 @@ function formatModelName(modelId) {
     .replace(/^deepseek-/, 'DeepSeek ')
     .replace(/^minimax-/, 'MiniMax ')
     .replace(/^mimo-/, 'MiMo ')
+    .replace(/^hy/, 'Hy')
     .replace(/\b(opus|sonnet|haiku)-(\d+)-(\d+)\b/g, '$1 $2.$3')
     .replace(/-/g, ' ')
-    .replace(/\b(sol|terra|luna|mini|opus|fable|sonnet|haiku|flash|pro|fast|max|code|plus|turbo)\b/g, word => word[0].toUpperCase() + word.slice(1))
+    .replace(/\b(sol|terra|luna|mini|opus|fable|sonnet|haiku|flash|pro|fast|max|code|plus|turbo|preview)\b/g, word => word[0].toUpperCase() + word.slice(1))
     .replace(/\b([kvm])(?=\d)/g, letter => letter.toUpperCase());
 }
 
