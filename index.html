@@ -4310,8 +4310,50 @@ const appMeta = {
   'cursor': { title: 'Cursor', glyph: 'CU' },
   'codex-vscode': { title: 'Codex · VS Code', glyph: 'VS' },
   'codex-app': { title: 'Codex App', glyph: 'CX' },
-  'codex-cli': { title: 'Codex CLI', glyph: '>_' }
+  'codex-cli': { title: 'Codex CLI', glyph: '>_' },
+  'roo-code': { title: 'Roo Code', glyph: 'RC' },
+  'continue': { title: 'Continue', glyph: 'CO' },
+  'cherry-studio': { title: 'Cherry Studio', glyph: 'CH' },
+  'chatbox': { title: 'Chatbox', glyph: 'CB' }
 };
+
+function additionalModelIds() {
+  return (Array.isArray(modelCatalog) ? modelCatalog : []).map(([id]) => id);
+}
+
+function additionalModelList() {
+  return additionalModelIds().join('\n');
+}
+
+function additionalDefaultModel() {
+  const preferred = 'gpt-5.6-terra';
+  return additionalModelIds().includes(preferred) ? preferred : (additionalModelIds()[0] || preferred);
+}
+
+function additionalClientManual(clientId, os) {
+  const path = os === 'windows' ? '%USERPROFILE%\\.continue\\config.yaml' : '~/.continue/config.yaml';
+  const osName = os === 'windows' ? 'Windows' : os === 'mac' ? 'macOS' : 'Linux';
+  const model = additionalDefaultModel();
+  if (clientId === 'roo-code') return `Установите расширение Roo Code в VS Code на ${osName}. Откройте Roo Code и нажмите значок шестерёнки, чтобы перейти к настройкам провайдера.\n\nУкажите следующие значения:\n\nAPI Provider: OpenAI Compatible\nBase URL: https://cheapvibecode.ru/v1\nAPI Key: ВАШ_API_КЛЮЧ\nModel: ${model}\n\nНастройка применяется одинаково на Windows, macOS и Linux. Отправьте короткий тестовый запрос. Если обычный ответ приходит, но Roo Code не может читать или изменять файлы, выбранная модель не поддерживает native tool calling — переключитесь на ${model} или другую модель с поддержкой инструментов.\n\nДля смены модели вставьте в поле Model один из точных API ID:\n\n${additionalModelList()}\n\nУдаление: откройте настройки Roo Code и очистите API Key и Base URL. Если конфигурация была сохранена отдельным профилем, удалите этот профиль в менеджере профилей Roo Code.`;
+  if (clientId === 'continue') return `Установите расширение Continue в VS Code или JetBrains на ${osName}. Откройте панель Continue, раскройте список конфигураций над полем чата, наведите курсор на Local Config и нажмите шестерёнку — Continue сам откроет нужный config.yaml.\n\nЕсли нужно открыть файл вручную, его путь на ${osName}: ${path}\n\nЗамените содержимое нового config.yaml этой конфигурацией. Если в файле уже есть ваши настройки, добавьте только блок модели внутрь существующего списка models:\n\nname: Prompt Port\nversion: 0.0.1\nschema: v1\nmodels:\n  - name: ${formatModelName(model)}\n    provider: openai\n    model: ${model}\n    apiBase: https://cheapvibecode.ru/v1\n    apiKey: ВАШ_API_КЛЮЧ\n    useResponsesApi: false\n    roles:\n      - chat\n      - edit\n      - apply\n    capabilities:\n      - tool_use\n\nСохраните файл: Continue перечитает его автоматически. Параметр useResponsesApi: false обязателен — он направляет запросы в совместимый /chat/completions. capabilities: tool_use включает Agent mode для моделей с поддержкой инструментов.\n\nЧтобы добавить другую модель, скопируйте блок от «- name» до «- tool_use», задайте уникальное name и замените model на точный API ID:\n\n${additionalModelList()}\n\nУдаление: удалите из ${path} добавленные блоки моделей Prompt Port и сохраните файл. Остальные настройки Continue не трогайте.`;
+  if (clientId === 'cherry-studio') return `Установите Cherry Studio для ${osName}. Откройте Settings → Model Services, нажмите «+ Add Provider» и создайте Custom Provider с OpenAI-совместимым endpoint.\n\nЗаполните поля:\n\nProvider Name: Prompt Port\nAPI Key: ВАШ_API_КЛЮЧ\nOpenAI API Address: https://cheapvibecode.ru\n\nВажно: в API Address не добавляйте /v1/chat/completions — Cherry Studio автоматически дописывает этот путь. Включите созданного провайдера переключателем в правом верхнем углу.\n\nНажмите Fetch Models / «Получить список моделей» и добавьте нужные модели кнопкой «+». Если список не загрузился, добавьте модели вручную по точному API ID:\n\n${additionalModelList()}\n\nНажмите Check / «Проверить», выберите ${model}, затем создайте новый чат с провайдером Prompt Port. Настройка одинакова на Windows, macOS и Linux.\n\nУдаление: Settings → Model Services → Prompt Port. Удалите сохранённый API Key и сам пользовательский провайдер.`;
+  if (clientId === 'chatbox') return `Установите Chatbox на ${osName}. Откройте Settings → Model Provider, внизу нажмите Add и создайте нового провайдера.\n\nЗаполните поля:\n\nProvider Name: Prompt Port\nAPI Type: OpenAI API Compatible\nAPI Key: ВАШ_API_КЛЮЧ\nAPI Host: https://cheapvibecode.ru\nAPI Path: /v1/chat/completions\n\nВажно: API Host указывается без /v1, потому что полный путь задаётся отдельно в API Path. Добавьте как минимум одну модель:\n\nModel: ${model}\n\nДля других моделей используйте точные API ID из списка. Каждую нужную модель добавьте отдельной записью; способности модели отмечайте только если действительно будете использовать изображения или инструменты:\n\n${additionalModelList()}\n\nСохраните провайдера и нажмите Check. После сообщения об успешном подключении вернитесь на главный экран и создайте новый чат. Эти поля одинаковы в версиях Chatbox для Windows, macOS и Linux.\n\nУдаление: Settings → Model Provider → Prompt Port → Remove.`;
+  return '';
+}
+
+function augmentAdditionalClients() {
+  const clientIds = ['roo-code', 'continue', 'cherry-studio', 'chatbox'];
+  for (const os of ['windows', 'mac', 'linux']) {
+    if (!Array.isArray(state.data[os])) state.data[os] = [];
+    for (const id of clientIds) {
+      if (!state.data[os].some(item => item.id === id)) state.data[os].push({ id, manual: additionalClientManual(id, os) });
+    }
+  }
+}
+
+function codexVscodeManualGuide(manual) {
+  return String(manual || '').replace(/model = "gpt-5\.6-terra"/g, 'model = "gpt-6-astra"');
+}
 
 // Quick setup is generated directly in the browser. These scripts are fully
 // visible, use only built-in OS tools and never download or execute remote files.
@@ -4364,6 +4406,7 @@ const cursorLegacyModelNames = [
 
 function windowsLocalInstall(clientId) {
   const key = 'ВАШ_API_КЛЮЧ';
+  const codexDefault = clientId === 'codex-vscode' ? 'gpt-6-astra' : 'gpt-5.6-terra';
   const models = localInstallModelEntries();
   const cursorSpecs = cursorInstallModelSpecs();
   const cursorDefault = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'sonnet-4-6-cursor'].find(id => cursorSpecs.some(([name]) => name === id)) || cursorSpecs[0]?.[0];
@@ -4733,7 +4776,7 @@ foreach ($Line in $InputLines) {
   $Kept.Add($Line)
 }
 while ($Kept.Count -and [string]::IsNullOrWhiteSpace($Kept[0])) { $Kept.RemoveAt(0) }
-$Managed = @('model = "gpt-5.6-terra"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true','')
+$Managed = @('model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true','')
 $Out = New-Object System.Collections.Generic.List[string]; $Managed | ForEach-Object { $Out.Add($_) }; $Kept | ForEach-Object { $Out.Add($_) }
 [IO.File]::WriteAllText($ConfigPath, ([string]::Join([Environment]::NewLine, $Out).TrimEnd() + [Environment]::NewLine), $Utf8)
 $AuthPath = Join-Path $Dir 'auth.json'; $Auth = [pscustomobject]@{}
@@ -4770,6 +4813,7 @@ PROMPT_PORT_CONFIG`;
 
 function unixShellInstall(clientId, os) {
   const key = 'ВАШ_API_КЛЮЧ';
+  const codexDefault = clientId === 'codex-vscode' ? 'gpt-6-astra' : 'gpt-5.6-terra';
   const models = localInstallModelEntries();
   const cursorSpecs = cursorInstallModelSpecs();
   const cursorDefault = ['gpt-5.6-terra-cursor', 'gpt-5.4-cursor', 'sonnet-4-6-cursor'].find(id => cursorSpecs.some(([name]) => name === id)) || cursorSpecs[0]?.[0];
@@ -5093,7 +5137,7 @@ for (const line of lines) {
   kept.push(line);
 }
 while (kept.length && !kept[0].trim()) kept.shift();
-const managed = ['model = "gpt-5.6-terra"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true',''];
+const managed = ['model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true',''];
 fs.writeFileSync(configPath, managed.concat(kept).join('\n').trimEnd() + '\n', { mode: 0o600 });
 const authPath = path.join(dir, 'auth.json'); let auth = {};
 try { const raw = fs.existsSync(authPath) ? fs.readFileSync(authPath, 'utf8') : ''; auth = raw.trim() ? JSON.parse(raw) : {}; }
@@ -5457,7 +5501,7 @@ function codeWindow(code, title) {
 
 function looksLikeCode(line) {
   const trimmed = line.trim();
-  return /^\s*(?:[#{$\[]|\/\/|export\s|source\s|mkdir\s|nano\s|bash\s|curl\s|\$env:|\[Environment\]|[A-Z][A-Z0-9_]+\s*=|Base URL\s*:|API key\s*:|Model\s*:|model\s*=|default\s*=)/i.test(line)
+  return /^\s*(?:[#{$\[]|\/\/|export\s|source\s|mkdir\s|nano\s|bash\s|curl\s|\$env:|\[Environment\]|[A-Z][A-Z0-9_]+\s*=|(?:name|version|schema|models|provider|model|apiBase|apiKey|useResponsesApi|roles|capabilities)\s*:|API (?:Provider|Key|Type|Host|Path|Address)\s*:|Provider Name\s*:|OpenAI API Address\s*:|Base URL\s*:|default\s*=|(?:gpt|claude|gemini|grok|kimi|qwen|hy|glm|deepseek|minimax|mimo)[a-z0-9._:-]*-[a-z0-9._:-]+)/i.test(line)
     || (/^\s{2,}\S/.test(line) && !/^[А-Яа-яЁё]/.test(trimmed));
 }
 
@@ -6178,7 +6222,12 @@ function renderGuide() {
   const localAuto = localInstallCommand(state.os, item.id);
   const auto = localAuto ? runtimeText(localAuto, item.id) : '';
   const removal = removalCommands[state.os]?.[item.id] || '';
-  const manual = runtimeText(item.id === 'cursor' ? cursorManualGuide(state.os) : item.manual, item.id);
+  const manualSource = item.id === 'cursor'
+    ? cursorManualGuide(state.os)
+    : item.id === 'codex-vscode'
+      ? codexVscodeManualGuide(item.manual)
+      : item.manual;
+  const manual = runtimeText(manualSource, item.id);
   const blocks = guideBlocks(manual);
   const index = items.indexOf(item) + 1;
 
@@ -6816,6 +6865,7 @@ async function init() {
     const binary = atob(encoded);
     const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
     state.data = JSON.parse(new TextDecoder('utf-8').decode(bytes));
+    augmentAdditionalClients();
   } catch (error) {
     $('#guidePanel').innerHTML = `<div class="empty-guide">${t('read_error')}</div>`;
   }
