@@ -4431,7 +4431,7 @@ function windowsLocalInstall(clientId) {
   const grokModelIds = Object.keys(models).map(grokConfigId);
   const grokModelBlock = Object.entries(models).map(([id, value]) => {
     const configId = grokConfigId(id);
-    return `[model."${configId}"]\nmodel = "${id}"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "${id}"\ndescription = "${value.name}"\napi_key = "$ApiKey"\napi_backend = "chat_completions"\ncontext_window = ${value.limit.context}`;
+    return `[model."${configId}"]\nmodel = "${id}"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "${id}"\ndescription = "${value.name}"\napi_key = "${key}"\napi_backend = "chat_completions"\ncontext_window = ${value.limit.context}`;
   }).join('\n\n');
 
   if (clientId === 'claude-code') return String.raw`$ErrorActionPreference = 'Stop'
@@ -4458,7 +4458,8 @@ Set-Value $EnvConfig 'ANTHROPIC_AUTH_TOKEN' $ApiKey
 Set-Value $Config 'env' $EnvConfig
 $Sandbox = if (($Config.PSObject.Properties.Name -contains 'sandbox') -and ($Config.sandbox -is [pscustomobject])) { $Config.sandbox } else { [pscustomobject]@{} }
 $Network = if (($Sandbox.PSObject.Properties.Name -contains 'network') -and ($Sandbox.network -is [pscustomobject])) { $Sandbox.network } else { [pscustomobject]@{} }
-Set-Value $Network 'allowedDomains' ([object[]]@('*'))
+$Allowed = @(); if (($Network.PSObject.Properties.Name -contains 'allowedDomains') -and ($Network.allowedDomains -is [array])) { $Allowed = @($Network.allowedDomains) }
+Set-Value $Network 'allowedDomains' ([object[]]@($Allowed + 'ru.cheapvibecode.ru' | Select-Object -Unique))
 Set-Value $Sandbox 'network' $Network
 Set-Value $Config 'sandbox' $Sandbox
 [IO.File]::WriteAllText($Path, ($Config | ConvertTo-Json -Depth 30) + [Environment]::NewLine, $Utf8)
@@ -4477,9 +4478,9 @@ function Read-Object($Path) {
     $Raw = Get-Content $Path -Raw -Encoding UTF8
     if ([string]::IsNullOrWhiteSpace($Raw)) { return [pscustomobject]@{} }
     $Value = $Raw | ConvertFrom-Json
-    if ($null -eq $Value -or $Value -isnot [pscustomobject]) { return [pscustomobject]@{} }
+    if ($null -eq $Value -or $Value -isnot [pscustomobject]) { throw 'The root value must be a JSON object.' }
     return $Value
-  } catch { return [pscustomobject]@{} }
+  } catch { throw "Claude App config is invalid JSON: $Path. Backup: $Backup" }
 }
 function Set-Value($Object, $Name, $Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name = $Value } else { $Object | Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
 function Remove-Value($Object, $Name) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.PSObject.Properties.Remove($Name) } }
@@ -4560,7 +4561,9 @@ function Split-Section($Lines, $Name) {
   [pscustomobject]@{ Main=@($Main); Section=@($Section) }
 }
 $Split = Split-Section $Existing 'custom_providers'
-$Main = (Split-Section $Split.Main 'model').Main
+$ModelSplit = Split-Section $Split.Main 'model'
+$Main = $ModelSplit.Main
+$ModelOther = @($ModelSplit.Section | Where-Object { $_ -notmatch '^\s*(?:provider|default)\s*:' })
 $OtherProviders = New-Object System.Collections.Generic.List[string]
 $Current = New-Object System.Collections.Generic.List[string]
 function Flush-HermesProvider {
@@ -4584,6 +4587,7 @@ $Kept.Add('')
 $Kept.Add('model:')
 $Kept.Add('  provider: "custom:cheapvibecode"')
 $Kept.Add('  default: "${Object.keys(models).includes('claude-sonnet-4-6') ? 'claude-sonnet-4-6' : Object.keys(models)[0]}"')
+$ModelOther | ForEach-Object { $Kept.Add($_) }
 [IO.File]::WriteAllText($ConfigPath, ([string]::Join([Environment]::NewLine, $Kept) + [Environment]::NewLine), $Utf8)
 $EnvLines = New-Object System.Collections.Generic.List[string]
 if (Test-Path $EnvPath) { Get-Content $EnvPath -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*(?:CVC_API_KEY|CHEAPCODE_API_KEY)\s*=' } | ForEach-Object { $EnvLines.Add($_) } }
@@ -4708,6 +4712,7 @@ const legacy = new Set(JSON.parse(process.env.PROMPT_PORT_CURSOR_LEGACY));
 const appKey = 'src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser';
 const plaintextKey = 'cursorAuth/openAIKey';
 const encryptedKey = 'secret://cursorAuth/openAIKey';
+const backupKey = 'promptPort/originalOpenAIState';
 const surfaces = ['cmd-k','composer','background-composer','composer-ensemble','plan-execution','spec','deep-search','quick-agent'];
 const names = specs.map(item => item[0]);
 const managed = new Set(names.concat([...legacy]));
@@ -4728,6 +4733,7 @@ try {
   const raw = read(appKey);
   if (raw == null) throw new Error('Cursor application state is missing. Start Cursor once and retry.');
   const app = JSON.parse(raw);
+  if (read(backupKey) == null) upsert(backupKey, JSON.stringify({ plain:read(plaintextKey), encrypted:read(encryptedKey), baseUrl:app.openAIBaseUrl ?? null, useOpenAIKey:app.useOpenAIKey ?? null }));
   const ai = app.aiSettings && typeof app.aiSettings === 'object' && !Array.isArray(app.aiSettings) ? app.aiSettings : {};
   app.aiSettings = ai; app.openAIBaseUrl = baseUrl; app.useOpenAIKey = true;
   ai.userAddedModels = dedupe(asArray(ai.userAddedModels).filter(name => !managed.has(name)).concat(names));
@@ -4812,6 +4818,15 @@ ${content}
 PROMPT_PORT_CONFIG`;
 }
 
+// Keep shell/embedded-script escapes intact while still allowing deliberate
+// shell substitutions (\${...}) and nested JavaScript template literals.
+function shellCommand(strings, ...values) {
+  return strings.raw.reduce((output, part, index) => {
+    const literal = part.replace(/\\\$\{/g, '${').replace(/\\`/g, '`');
+    return output + literal + (index < values.length ? values[index] : '');
+  }, '');
+}
+
 function unixShellInstall(clientId, os) {
   const key = 'ВАШ_API_КЛЮЧ';
   const codexDefault = clientId === 'codex-vscode' ? 'gpt-6-astra' : 'gpt-5.6-terra';
@@ -4824,7 +4839,7 @@ function unixShellInstall(clientId, os) {
   const grokModelBlock = Object.entries(models).map(([id, value]) => `[model."${grokConfigId(id)}"]\nmodel = "${id}"\nbase_url = "https://cheapvibecode.ru/v1"\nname = "${id}"\ndescription = "${value.name}"\napi_key = "${key}"\napi_backend = "chat_completions"\ncontext_window = ${value.limit.context}`).join('\n\n');
   const stamp = 'STAMP=$(date +%Y%m%d-%H%M%S)';
 
-  if (clientId === 'claude-code') return `set -euo pipefail
+  if (clientId === 'claude-code') return shellCommand`set -euo pipefail
 API_KEY='${key}'
 BASE_URL='https://ru.cheapvibecode.ru'
 DIR="$HOME/.claude"
@@ -4848,13 +4863,14 @@ data.env.ANTHROPIC_BASE_URL = process.env.PROMPT_PORT_CLAUDE_URL;
 data.env.ANTHROPIC_AUTH_TOKEN = process.env.PROMPT_PORT_CLAUDE_KEY;
 if (!data.sandbox || typeof data.sandbox !== 'object' || Array.isArray(data.sandbox)) data.sandbox = {};
 if (!data.sandbox.network || typeof data.sandbox.network !== 'object' || Array.isArray(data.sandbox.network)) data.sandbox.network = {};
-data.sandbox.network.allowedDomains = ['*'];
+const allowed = Array.isArray(data.sandbox.network.allowedDomains) ? data.sandbox.network.allowedDomains : [];
+data.sandbox.network.allowedDomains = [...new Set(allowed.concat('ru.cheapvibecode.ru'))];
 fs.writeFileSync(path, JSON.stringify(data, null, 2) + '\n', { mode: 0o600 });
 PROMPT_PORT_NODE
 chmod 600 "$SETTINGS"
 printf '%s\n' 'Claude Code configured.' "Backup: $BACKUP"`;
 
-  if (clientId === 'claude-app' && os === 'mac') return `set -euo pipefail
+  if (clientId === 'claude-app' && os === 'mac') return shellCommand`set -euo pipefail
 API_KEY='${key}'
 BASE_URL='https://ru.cheapvibecode.ru'
 DIR="$HOME/Library/Application Support/Claude-3p"
@@ -4867,10 +4883,9 @@ mkdir -p "$DIR" "$LIBRARY" "$BACKUP"
 [ ! -f "$META" ] || cp "$META" "$BACKUP/configLibrary-meta.json"
 ensure_object() {
   local path="$1" first=''
-  [ ! -f "$path" ] || first=$(/usr/bin/plutil -p "$path" 2>/dev/null | head -c 1 || true)
-  if [ ! -f "$path" ] || ! /usr/bin/plutil -convert json -o /dev/null "$path" >/dev/null 2>&1 || [ "$first" != '{' ]; then
-    printf '{"__prompt_port_seed__":true}\n' > "$path"
-  fi
+  if [ ! -f "$path" ]; then printf '{"__prompt_port_seed__":true}\n' > "$path"; return; fi
+  first=$(/usr/bin/plutil -p "$path" 2>/dev/null | head -c 1 || true)
+  if ! /usr/bin/plutil -convert json -o /dev/null "$path" >/dev/null 2>&1 || [ "$first" != '{' ]; then printf '%s\n' "Claude App config is invalid: $path. Backup: $BACKUP" >&2; exit 1; fi
 }
 put_string() {
   if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -string "$3" "$1"; else /usr/bin/plutil -insert "$2" -string "$3" "$1"; fi
@@ -4920,7 +4935,7 @@ printf '%s\n' 'Claude App configured.' "Backup: $BACKUP"`;
   if (clientId === 'hermes') {
     const yamlModels = Object.keys(models).map(id => `      "${id}": {}`).join('\n');
     const defaultModel = Object.keys(models).includes('claude-sonnet-4-6') ? 'claude-sonnet-4-6' : Object.keys(models)[0];
-    return `set -euo pipefail
+    return shellCommand`set -euo pipefail
 API_KEY='${key}'
 if [ -n "\${HERMES_HOME:-}" ]; then DIR="$HERMES_HOME"; else DIR="$HOME/.hermes"; fi
 CONFIG="$DIR/config.yaml"
@@ -4947,6 +4962,7 @@ function splitSection(source, name) {
 }
 const custom = splitSection(lines, 'custom_providers');
 const model = splitSection(custom.main, 'model');
+const modelOther = model.section.filter(line => !/^\s*(?:provider|default)\s*:/.test(line));
 const blocks = []; let current = [];
 for (const line of custom.section) { if (/^\s*-\s+/.test(line) && current.length) { blocks.push(current); current = []; } current.push(line); }
 if (current.length) blocks.push(current);
@@ -4963,7 +4979,8 @@ ${yamlModels}
 
 model:
   provider: "custom:cheapvibecode"
-  default: "${defaultModel}"\`;
+  default: "${defaultModel}"
+\${modelOther.join('\n')}\`;
 fs.writeFileSync(configPath, (model.main.length ? model.main.join('\n') + '\n\n' : '') + managed + '\n', { mode: 0o600 });
 let env = fs.existsSync(envPath) ? fs.readFileSync(envPath, 'utf8').split(/\r?\n/) : [];
 env = env.filter(line => !/^\s*(?:export\s+)?(?:CVC_API_KEY|CHEAPCODE_API_KEY)\s*=/.test(line));
@@ -4977,7 +4994,7 @@ printf '%s\n' 'Hermes configured.' "Backup: $BACKUP"`;
   }
 
   if (clientId === 'grok') {
-    return `set -euo pipefail
+    return shellCommand`set -euo pipefail
 API_KEY='${key}'
 DIR="\${GROK_CONFIG_DIR:-$HOME/.grok}"
 PATH_FILE="$DIR/config.toml"
@@ -5012,7 +5029,7 @@ printf '%s\n' 'Grok Build configured.' "Backup: $BACKUP"`;
   }
 
   if (clientId === 'opencode') {
-    return `set -euo pipefail
+    return shellCommand`set -euo pipefail
 API_KEY='${key}'
 if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge OpenCode settings.' >&2; exit 1; fi
 if [ -n "\${OPENCODE_CONFIG_PATH:-}" ]; then PATH_FILE="$OPENCODE_CONFIG_PATH"; else
@@ -5057,7 +5074,7 @@ printf '%s\n' 'OpenCode configured.' "Backup: $BACKUP"`;
     const stopCursor = os === 'mac'
       ? `osascript -e 'tell application "Cursor" to quit' >/dev/null 2>&1 || true\nfor _ in 1 2 3 4 5; do pgrep -x Cursor >/dev/null 2>&1 || break; sleep 0.4; done\npkill -x Cursor >/dev/null 2>&1 || true`
       : `pkill -x Cursor >/dev/null 2>&1 || true\npkill -x cursor >/dev/null 2>&1 || true`;
-    return `set -eu
+    return shellCommand`set -eu
 API_KEY='${key}'
 BASE_URL='https://cheapvibecode.ru/v1'
 DEFAULT_MODEL='${cursorDefault}'
@@ -5077,7 +5094,7 @@ export PROMPT_PORT_CURSOR_LEGACY='${JSON.stringify(cursorLegacyModelNames)}'
 import json, os, sqlite3, sys
 db_path=os.environ['PROMPT_PORT_CURSOR_DB']; api_key=os.environ['PROMPT_PORT_CURSOR_KEY']; base_url=os.environ['PROMPT_PORT_CURSOR_URL']; default_model=os.environ['PROMPT_PORT_CURSOR_DEFAULT']
 specs=json.loads(os.environ['PROMPT_PORT_CURSOR_MODELS']); legacy=set(json.loads(os.environ['PROMPT_PORT_CURSOR_LEGACY'])); names=[item[0] for item in specs]; managed=set(names)|legacy
-app_key='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'; plaintext_key='cursorAuth/openAIKey'; encrypted_key='secret://cursorAuth/openAIKey'
+app_key='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'; plaintext_key='cursorAuth/openAIKey'; encrypted_key='secret://cursorAuth/openAIKey'; backup_key='promptPort/originalOpenAIState'
 surfaces=['cmd-k','composer','background-composer','composer-ensemble','plan-execution','spec','deep-search','quick-agent']
 def dedupe(items): return list(dict.fromkeys(items))
 def model_config(name): return {'modelName':name,'maxMode':False,'selectedModels':[{'modelId':name,'parameters':[]}]}
@@ -5089,7 +5106,10 @@ try:
     connection=sqlite3.connect(db_path,timeout=10); cursor=connection.cursor(); cursor.execute('PRAGMA busy_timeout = 10000'); cursor.execute('BEGIN IMMEDIATE')
     row=cursor.execute('SELECT value FROM ItemTable WHERE key=?',(app_key,)).fetchone()
     if not row: raise RuntimeError('Cursor application state is missing. Start Cursor once and retry.')
-    app=json.loads(row[0]); ai=app.get('aiSettings') if isinstance(app.get('aiSettings'),dict) else {}; app['aiSettings']=ai; app['openAIBaseUrl']=base_url; app['useOpenAIKey']=True
+    app=json.loads(row[0])
+    if not cursor.execute('SELECT 1 FROM ItemTable WHERE key=?',(backup_key,)).fetchone():
+        plain=cursor.execute('SELECT value FROM ItemTable WHERE key=?',(plaintext_key,)).fetchone(); encrypted=cursor.execute('SELECT value FROM ItemTable WHERE key=?',(encrypted_key,)).fetchone(); backup=json.dumps({'plain':plain[0] if plain else None,'encrypted':encrypted[0] if encrypted else None,'baseUrl':app.get('openAIBaseUrl'),'useOpenAIKey':app.get('useOpenAIKey')},separators=(',',':')); cursor.execute('INSERT INTO ItemTable(key,value) VALUES (?,?)',(backup_key,backup))
+    ai=app.get('aiSettings') if isinstance(app.get('aiSettings'),dict) else {}; app['aiSettings']=ai; app['openAIBaseUrl']=base_url; app['useOpenAIKey']=True
     ai['userAddedModels']=dedupe([name for name in ai.get('userAddedModels',[]) if name not in managed]+names)
     ai['modelOverrideEnabled']=dedupe([name for name in ai.get('modelOverrideEnabled',[]) if name not in managed]+names)
     ai['modelOverrideDisabled']=[name for name in ai.get('modelOverrideDisabled',[]) if name not in managed]
@@ -5117,7 +5137,7 @@ printf '%s\n' 'Cursor configured with ${cursorSpecs.length} models.' "Backup: $B
   }
 
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') {
-    return `set -euo pipefail
+    return shellCommand`set -euo pipefail
 API_KEY='${key}'
 DIR="$HOME/.codex"
 BACKUP="$DIR/backups/prompt-port-${clientId}-$(date +%Y%m%d-%H%M%S)"
@@ -5222,7 +5242,7 @@ foreach ($Name in @('.env','cheapvibecode.env')) {
 [Environment]::SetEnvironmentVariable('CVC_API_KEY',$null,'User')
 Remove-Item Env:CVC_API_KEY -ErrorAction SilentlyContinue
 Write-Host 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`,
-  mac: String.raw`set -eu
+  mac: shellCommand`set -eu
 DIR="$HOME/.codex"
 CONFIG="$DIR/config.toml"
 BACKUP="$DIR/backups/config-before-remove-$(date +%Y%m%d-%H%M%S).toml"
@@ -5240,7 +5260,7 @@ done
 launchctl unsetenv CVC_API_KEY >/dev/null 2>&1 || true
 unset CVC_API_KEY || true
 printf '%s\n' 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`,
-  linux: String.raw`set -eu
+  linux: shellCommand`set -eu
 DIR="$HOME/.codex"
 CONFIG="$DIR/config.toml"
 BACKUP="$DIR/backups/config-before-remove-$(date +%Y%m%d-%H%M%S).toml"
@@ -5260,38 +5280,172 @@ unset CVC_API_KEY || true
 printf '%s\n' 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`
 };
 
-const removalCommands = {
-  windows: {
-    'claude-code': `iex(irm 'https://ru.cheapvibecode.ru/crw')`,
-    'claude-app': `iex(irm 'https://ru.cheapvibecode.ru/rclaudew')`,
-    'hermes': `iex(irm 'https://ru.cheapvibecode.ru/rhermesw')`,
-    'grok': `iex(irm 'https://ru.cheapvibecode.ru/rgw')`,
-    'opencode': `iex(irm 'https://ru.cheapvibecode.ru/row')`,
-    'cursor': `iex(irm 'https://ru.cheapvibecode.ru/rcrw')`,
-    'codex-vscode': codexRemovalCommands.windows,
-    'codex-app': codexRemovalCommands.windows,
-    'codex-cli': codexRemovalCommands.windows
-  },
-  mac: {
-    'claude-code': `bash <(curl -fsSL https://ru.cheapvibecode.ru/crm)`,
-    'claude-app': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rclaudem)`,
-    'hermes': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rhermesm)`,
-    'grok': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rgm)`,
-    'opencode': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rom)`,
-    'cursor': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rcrm)`,
-    'codex-vscode': codexRemovalCommands.mac,
-    'codex-cli': codexRemovalCommands.mac,
-    'codex-app': codexRemovalCommands.mac
-  },
-  linux: {
-    'claude-code': `bash <(curl -fsSL https://ru.cheapvibecode.ru/crl)`,
-    'hermes': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rhermesl)`,
-    'grok': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rgl)`,
-    'opencode': `sh <(curl -fsSL https://ru.cheapvibecode.ru/rol)`,
-    'cursor': `bash <(curl -fsSL https://ru.cheapvibecode.ru/rcrl)`,
-    'codex-vscode': codexRemovalCommands.linux,
-    'codex-cli': codexRemovalCommands.linux
+const claudeCodeRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'
+$Path = Join-Path $HOME '.claude\settings.json'
+if (Test-Path $Path) {
+  $Raw = Get-Content $Path -Raw -Encoding UTF8; $Data = $Raw | ConvertFrom-Json
+  if ($Data.env -is [psobject]) { foreach ($Name in @('ANTHROPIC_BASE_URL','ANTHROPIC_AUTH_TOKEN')) { $Data.env.PSObject.Properties.Remove($Name) }; if (-not $Data.env.PSObject.Properties.Count) { $Data.PSObject.Properties.Remove('env') } }
+  if ($Data.sandbox.network.allowedDomains -is [array]) { $Data.sandbox.network.allowedDomains = @($Data.sandbox.network.allowedDomains | Where-Object { $_ -ne 'ru.cheapvibecode.ru' }); if (-not $Data.sandbox.network.allowedDomains.Count) { $Data.sandbox.network.PSObject.Properties.Remove('allowedDomains') } }
+  [IO.File]::WriteAllText($Path, ($Data | ConvertTo-Json -Depth 30) + [Environment]::NewLine, (New-Object System.Text.UTF8Encoding($false)))
+}
+Write-Host 'Prompt Port settings were removed from Claude Code. Restart Claude Code.'`,
+  mac: shellCommand`set -eu
+PATH_FILE="$HOME/.claude/settings.json"
+if [ -f "$PATH_FILE" ]; then
+  node - "$PATH_FILE" <<'PROMPT_PORT_NODE'
+const fs=require('fs'), path=process.argv[2]; let d=JSON.parse(fs.readFileSync(path,'utf8')); if(d.env&&typeof d.env==='object'){delete d.env.ANTHROPIC_BASE_URL;delete d.env.ANTHROPIC_AUTH_TOKEN;if(!Object.keys(d.env).length)delete d.env;} const n=d.sandbox?.network;if(Array.isArray(n?.allowedDomains)){n.allowedDomains=n.allowedDomains.filter(x=>x!=='ru.cheapvibecode.ru');if(!n.allowedDomains.length)delete n.allowedDomains;} fs.writeFileSync(path,JSON.stringify(d,null,2)+'\n');
+PROMPT_PORT_NODE
+fi
+printf '%s\n' 'Prompt Port settings were removed from Claude Code. Restart Claude Code.'`,
+  linux: shellCommand`set -eu
+PATH_FILE="$HOME/.claude/settings.json"
+if [ -f "$PATH_FILE" ]; then
+  node - "$PATH_FILE" <<'PROMPT_PORT_NODE'
+const fs=require('fs'), path=process.argv[2]; let d=JSON.parse(fs.readFileSync(path,'utf8')); if(d.env&&typeof d.env==='object'){delete d.env.ANTHROPIC_BASE_URL;delete d.env.ANTHROPIC_AUTH_TOKEN;if(!Object.keys(d.env).length)delete d.env;} const n=d.sandbox?.network;if(Array.isArray(n?.allowedDomains)){n.allowedDomains=n.allowedDomains.filter(x=>x!=='ru.cheapvibecode.ru');if(!n.allowedDomains.length)delete n.allowedDomains;} fs.writeFileSync(path,JSON.stringify(d,null,2)+'\n');
+PROMPT_PORT_NODE
+fi
+printf '%s\n' 'Prompt Port settings were removed from Claude Code. Restart Claude Code.'`
+};
+
+const claudeAppRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'
+$Candidates = @(); if ($env:APPDATA) { $Candidates += (Join-Path $env:APPDATA 'Claude-3p') }; if ($env:LOCALAPPDATA) { $Candidates += (Join-Path $env:LOCALAPPDATA 'Claude-3p') }
+foreach ($Dir in @($Candidates | Select-Object -Unique)) {
+  $Path = Join-Path $Dir 'claude_desktop_config.json'; if (-not (Test-Path $Path)) { continue }
+  $Data = Get-Content $Path -Raw -Encoding UTF8 | ConvertFrom-Json; $Managed = $false
+  if ($Data.enterpriseConfig -is [psobject] -and [string]$Data.enterpriseConfig.inferenceGatewayBaseUrl -eq 'https://ru.cheapvibecode.ru') {
+    foreach ($Name in @('inferenceProvider','inferenceGatewayBaseUrl','inferenceGatewayApiKey','inferenceGatewayAuthScheme','modelDiscoveryEnabled','coworkEgressAllowedHosts','inferenceGatewayHeaders','inferenceCustomHeaders','inferenceModels')) { $Data.enterpriseConfig.PSObject.Properties.Remove($Name) }; if (-not $Data.enterpriseConfig.PSObject.Properties.Count) { $Data.PSObject.Properties.Remove('enterpriseConfig') }; $Managed = $true
   }
+  if ($Managed -and [string]$Data.deploymentMode -eq '3p') { $Data.PSObject.Properties.Remove('deploymentMode') }
+  if ($Managed) { [IO.File]::WriteAllText($Path, ($Data | ConvertTo-Json -Depth 50) + [Environment]::NewLine, (New-Object System.Text.UTF8Encoding($false))) }
+  $MetaPath = Join-Path $Dir 'configLibrary\_meta.json'
+  if (Test-Path $MetaPath) { try { $Meta = Get-Content $MetaPath -Raw -Encoding UTF8 | ConvertFrom-Json; $Guid = [string]$Meta.appliedId; $ProfilePath = Join-Path $Dir ("configLibrary\$Guid.json"); if ($Guid -and (Test-Path $ProfilePath)) { $Profile = Get-Content $ProfilePath -Raw -Encoding UTF8 | ConvertFrom-Json; if ([string]$Profile.inferenceGatewayBaseUrl -eq 'https://ru.cheapvibecode.ru') { foreach ($Name in @('inferenceProvider','inferenceGatewayBaseUrl','inferenceGatewayApiKey','inferenceGatewayAuthScheme','modelDiscoveryEnabled','coworkEgressAllowedHosts','inferenceGatewayHeaders','inferenceCustomHeaders','inferenceModels')) { $Profile.PSObject.Properties.Remove($Name) }; [IO.File]::WriteAllText($ProfilePath,($Profile|ConvertTo-Json -Depth 50)+[Environment]::NewLine,(New-Object System.Text.UTF8Encoding($false))) } } } catch { throw "Claude App profile metadata is invalid: $MetaPath" } }
+}
+Write-Host 'Prompt Port settings were removed from Claude App. Restart Claude App.'`,
+  mac: shellCommand`set -eu
+DIR="$HOME/Library/Application Support/Claude-3p"; PATH_FILE="$DIR/claude_desktop_config.json"; META="$DIR/configLibrary/_meta.json"; PROFILE=''
+if [ -f "$META" ]; then GUID=$(/usr/bin/plutil -extract appliedId raw -n "$META" 2>/dev/null || true); [ -z "$GUID" ] || PROFILE="$DIR/configLibrary/$GUID.json"; fi
+if [ -f "$PATH_FILE" ] || [ -n "$PROFILE" -a -f "$PROFILE" ]; then
+  node - "$PATH_FILE" "$PROFILE" <<'PROMPT_PORT_NODE'
+const fs=require('fs'), managed=['inferenceProvider','inferenceGatewayBaseUrl','inferenceGatewayApiKey','inferenceGatewayAuthScheme','modelDiscoveryEnabled','coworkEgressAllowedHosts','inferenceGatewayHeaders','inferenceCustomHeaders','inferenceModels'];
+for(const [i,path] of process.argv.slice(2).entries()){if(!path||!fs.existsSync(path))continue;let d=JSON.parse(fs.readFileSync(path,'utf8')),e=i===0?d.enterpriseConfig:d;if(e&&e.inferenceGatewayBaseUrl==='https://ru.cheapvibecode.ru'){for(const k of managed)delete e[k];if(i===0){if(!Object.keys(e).length)delete d.enterpriseConfig;if(d.deploymentMode==='3p')delete d.deploymentMode;}fs.writeFileSync(path,JSON.stringify(d,null,2)+'\n');}}
+PROMPT_PORT_NODE
+fi
+printf '%s\n' 'Prompt Port settings were removed from Claude App. Restart Claude App.'`,
+  linux: shellCommand`printf '%s\n' 'Claude App is supported on macOS and Windows only.'`
+};
+
+const hermesRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'
+$Dir = if ($env:HERMES_HOME) { $env:HERMES_HOME } elseif ($env:LOCALAPPDATA) { Join-Path $env:LOCALAPPDATA 'hermes' } else { Join-Path $HOME '.hermes' }; $Path = Join-Path $Dir 'config.yaml'; $EnvPath = Join-Path $Dir '.env'; $Utf8 = New-Object System.Text.UTF8Encoding($false)
+if (Test-Path $Path) {
+  $Lines = @(Get-Content $Path -Encoding UTF8); $Out = New-Object System.Collections.Generic.List[string]; $section=''; $capture=$false; $block=New-Object System.Collections.Generic.List[string]
+  function Flush { if ($script:block.Count -and (($script:block -join [Environment]::NewLine) -notmatch '(?im)^\s*(?:-\s*)?name\s*:\s*["'']?cheapvibecode["'']?\s*$')) { $script:block | ForEach-Object { $script:Out.Add($_) } }; $script:block.Clear() }
+  foreach ($Line in $Lines) { if ($Line -match '^[A-Za-z0-9_.-]+\s*:') { if($capture){Flush}; $capture=$false; $section=$Matches[0].TrimEnd(':') }; if($section -eq 'custom_providers' -and $Line -match '^\s*-\s+') { if($capture){Flush}; $capture=$true; $block.Add($Line); continue }; if($capture){$block.Add($Line)} else {$Out.Add($Line)} }; if($capture){Flush}
+  $Out = @($Out | Where-Object { $_ -notmatch '^\s*provider:\s*["'']?custom:cheapvibecode["'']?\s*$' -and $_ -notmatch '^\s*default:\s*["'']?custom:cheapvibecode["'']?\s*$' }); [IO.File]::WriteAllText($Path, ([string]::Join([Environment]::NewLine,$Out)).TrimEnd()+[Environment]::NewLine,$Utf8)
+}
+if (Test-Path $EnvPath) { @(Get-Content $EnvPath -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*(?:CVC_API_KEY|CHEAPCODE_API_KEY)\s*=' }) | Set-Content $EnvPath -Encoding utf8 }
+[Environment]::SetEnvironmentVariable('CVC_API_KEY',$null,'User'); [Environment]::SetEnvironmentVariable('CHEAPCODE_API_KEY',$null,'User'); Remove-Item Env:CVC_API_KEY,Env:CHEAPCODE_API_KEY -ErrorAction SilentlyContinue; Write-Host 'Prompt Port was removed from Hermes.'`,
+  mac: shellCommand`set -eu
+DIR="\${HERMES_HOME:-$HOME/.hermes}"; CONFIG="$DIR/config.yaml"; ENV_FILE="$DIR/.env"
+if [ -f "$CONFIG" ]; then
+  node - "$CONFIG" <<'PROMPT_PORT_NODE'
+const fs=require('fs'),path=process.argv[2];let l=fs.readFileSync(path,'utf8').split(/\r?\n/),main=[],custom=[],cap=false,block=[];const flush=()=>{if(block.length&&!/^\s*-?\s*name\s*:\s*["']?cheapvibecode["']?\s*$/im.test(block.join('\n')))custom.push(...block);block=[]};for(const x of l){if(!cap&&/^custom_providers:\s*$/.test(x)){cap=true;continue}if(cap&&/^[A-Za-z0-9_.-]+\s*:/.test(x)){flush();cap=false;main.push(x);continue}if(cap&&/^\s*-\s+/.test(x)){flush();block=[x];continue}if(cap)block.push(x);else main.push(x)}if(cap)flush();main=main.filter(x=>!/^\s*(?:provider|default):\s*["']?custom:cheapvibecode["']?\s*$/.test(x));let out=main; if(custom.length)out.push('custom_providers:',...custom); fs.writeFileSync(path,out.join('\n').replace(/\n+$/,'')+'\n');
+PROMPT_PORT_NODE
+fi
+[ ! -f "$ENV_FILE" ] || sed -E -i '' '/^(CVC_API_KEY|CHEAPCODE_API_KEY)=/d' "$ENV_FILE"; for p in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do [ ! -f "$p" ] || sed -E -i '' '/^export (CVC_API_KEY|CHEAPCODE_API_KEY)=/d' "$p"; done; unset CVC_API_KEY CHEAPCODE_API_KEY; printf '%s\n' 'Prompt Port was removed from Hermes.'`,
+  linux: shellCommand`set -eu
+DIR="\${HERMES_HOME:-$HOME/.hermes}"; CONFIG="$DIR/config.yaml"; ENV_FILE="$DIR/.env"
+if [ -f "$CONFIG" ]; then
+  node - "$CONFIG" <<'PROMPT_PORT_NODE'
+const fs=require('fs'),path=process.argv[2];let l=fs.readFileSync(path,'utf8').split(/\r?\n/),main=[],custom=[],cap=false,block=[];const flush=()=>{if(block.length&&!/^\s*-?\s*name\s*:\s*["']?cheapvibecode["']?\s*$/im.test(block.join('\n')))custom.push(...block);block=[]};for(const x of l){if(!cap&&/^custom_providers:\s*$/.test(x)){cap=true;continue}if(cap&&/^[A-Za-z0-9_.-]+\s*:/.test(x)){flush();cap=false;main.push(x);continue}if(cap&&/^\s*-\s+/.test(x)){flush();block=[x];continue}if(cap)block.push(x);else main.push(x)}if(cap)flush();main=main.filter(x=>!/^\s*(?:provider|default):\s*["']?custom:cheapvibecode["']?\s*$/.test(x));let out=main; if(custom.length)out.push('custom_providers:',...custom); fs.writeFileSync(path,out.join('\n').replace(/\n+$/,'')+'\n');
+PROMPT_PORT_NODE
+fi
+[ ! -f "$ENV_FILE" ] || sed -E -i '/^(CVC_API_KEY|CHEAPCODE_API_KEY)=/d' "$ENV_FILE"; for p in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do [ ! -f "$p" ] || sed -E -i '/^export (CVC_API_KEY|CHEAPCODE_API_KEY)=/d' "$p"; done; unset CVC_API_KEY CHEAPCODE_API_KEY; printf '%s\n' 'Prompt Port was removed from Hermes.'`
+};
+
+const grokRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'; $Dir = if ($env:GROK_CONFIG_DIR) { $env:GROK_CONFIG_DIR } else { Join-Path $HOME '.grok' }; $Path = Join-Path $Dir 'config.toml'; if (Test-Path $Path) { $Text = Get-Content $Path -Raw -Encoding UTF8; $Text = [regex]::Replace($Text, '(?ms)^# >>> Prompt Port models >>>.*?^# <<< Prompt Port models <<<\s*', ''); $Text = $Text -replace '(?m)^default\s*=\s*"(?:gpt|claude|gemini|grok|composer|kimi|qwen|glm|deepseek|minimax|mimo|hy)[^"]*"\s*\r?\n',''; $Text = $Text -replace '(?m)^default_reasoning_effort\s*=\s*"[^"]*"\s*\r?\n',''; [IO.File]::WriteAllText($Path,$Text.TrimEnd()+[Environment]::NewLine,(New-Object System.Text.UTF8Encoding($false))) }; Write-Host 'Prompt Port models were removed from Grok Build.'`,
+  mac: String.raw`set -eu; PATH_FILE="\${GROK_CONFIG_DIR:-$HOME/.grok/config.toml}"; [ ! -f "$PATH_FILE" ] || { sed -E -i '' '/^# >>> Prompt Port models >>>/,/^# <<< Prompt Port models <<</d' "$PATH_FILE"; sed -E -i '' '/^default[[:space:]]*=[[:space:]]*"(gpt|claude|gemini|grok|composer|kimi|qwen|glm|deepseek|minimax|mimo|hy)[^"]*"[[:space:]]*$/d; /^default_reasoning_effort[[:space:]]*=/d' "$PATH_FILE"; }; printf '%s\n' 'Prompt Port models were removed from Grok Build.'`,
+  linux: String.raw`set -eu; PATH_FILE="\${GROK_CONFIG_DIR:-$HOME/.grok/config.toml}"; [ ! -f "$PATH_FILE" ] || { sed -E -i '/^# >>> Prompt Port models >>>/,/^# <<< Prompt Port models <<</d' "$PATH_FILE"; sed -E -i '/^default[[:space:]]*=[[:space:]]*"(gpt|claude|gemini|grok|composer|kimi|qwen|glm|deepseek|minimax|mimo|hy)[^"]*"[[:space:]]*$/d; /^default_reasoning_effort[[:space:]]*=/d' "$PATH_FILE"; }; printf '%s\n' 'Prompt Port models were removed from Grok Build.'`
+};
+
+const opencodeRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'; $Candidates = @(); if ($env:OPENCODE_CONFIG_PATH) { $Candidates += $env:OPENCODE_CONFIG_PATH }; $Candidates += @((Join-Path $HOME '.config\opencode\opencode.jsonc'),(Join-Path $HOME '.config\opencode\opencode.json'),(Join-Path $HOME '.local\share\opencode\opencode.jsonc'),(Join-Path $HOME '.local\share\opencode\opencode.json')); $Path = [string](@($Candidates | Where-Object { Test-Path -LiteralPath $_ } | Select-Object -First 1)); if ($Path) { $Raw = Get-Content $Path -Raw -Encoding UTF8; $Json = (($Raw -split [Environment]::NewLine) | Where-Object { -not $_.TrimStart().StartsWith('//') }) -join [Environment]::NewLine; try { $Data = $Json | ConvertFrom-Json; if ($Data.provider -is [psobject]) { $Data.provider.PSObject.Properties.Remove('cheapvibecode') }; foreach ($Name in @('model','small_model')) { if ([string]$Data.$Name -like 'cheapvibecode/*') { $Data.PSObject.Properties.Remove($Name) } }; [IO.File]::WriteAllText($Path,($Data | ConvertTo-Json -Depth 100)+[Environment]::NewLine,(New-Object System.Text.UTF8Encoding($false))) } catch { throw 'OpenCode config is not valid JSON/JSONC; no changes were made.' } }; Write-Host 'Prompt Port was removed from OpenCode.'`,
+  mac: String.raw`set -eu; if [ -n "\${OPENCODE_CONFIG_PATH:-}" ]; then PATH_FILE="$OPENCODE_CONFIG_PATH"; else PATH_FILE=''; for candidate in "$HOME/.config/opencode/opencode.jsonc" "$HOME/.config/opencode/opencode.json" "$HOME/.local/share/opencode/opencode.jsonc" "$HOME/.local/share/opencode/opencode.json"; do [ ! -f "$candidate" ] || { PATH_FILE="$candidate"; break; }; done; fi; [ -z "$PATH_FILE" ] || node - "$PATH_FILE" <<'PROMPT_PORT_NODE'
+const fs=require('fs'),p=process.argv[2];let raw=fs.readFileSync(p,'utf8').replace(/^\s*\/\/.*$/gm,'').replace(/,\s*([}\]])/g,'$1'),d=JSON.parse(raw);if(d.provider&&typeof d.provider==='object')delete d.provider.cheapvibecode;for(const k of ['model','small_model'])if(typeof d[k]==='string'&&d[k].startsWith('cheapvibecode/'))delete d[k];fs.writeFileSync(p,JSON.stringify(d,null,2)+'\n');
+PROMPT_PORT_NODE
+printf '%s\n' 'Prompt Port was removed from OpenCode.'`,
+  linux: String.raw`set -eu; if [ -n "\${OPENCODE_CONFIG_PATH:-}" ]; then PATH_FILE="$OPENCODE_CONFIG_PATH"; else PATH_FILE=''; for candidate in "$HOME/.config/opencode/opencode.jsonc" "$HOME/.config/opencode/opencode.json" "$HOME/.local/share/opencode/opencode.jsonc" "$HOME/.local/share/opencode/opencode.json"; do [ ! -f "$candidate" ] || { PATH_FILE="$candidate"; break; }; done; fi; [ -z "$PATH_FILE" ] || node - "$PATH_FILE" <<'PROMPT_PORT_NODE'
+const fs=require('fs'),p=process.argv[2];let raw=fs.readFileSync(p,'utf8').replace(/^\s*\/\/.*$/gm,'').replace(/,\s*([}\]])/g,'$1'),d=JSON.parse(raw);if(d.provider&&typeof d.provider==='object')delete d.provider.cheapvibecode;for(const k of ['model','small_model'])if(typeof d[k]==='string'&&d[k].startsWith('cheapvibecode/'))delete d[k];fs.writeFileSync(p,JSON.stringify(d,null,2)+'\n');
+PROMPT_PORT_NODE
+printf '%s\n' 'Prompt Port was removed from OpenCode.'`
+};
+
+const cursorRemoval = {
+  windows: String.raw`$ErrorActionPreference = 'Stop'; $Db = if ($env:CVC_CURSOR_STATE_DB_PATH) { $env:CVC_CURSOR_STATE_DB_PATH } else { Join-Path $env:APPDATA 'Cursor\User\globalStorage\state.vscdb' }; if (-not (Test-Path $Db)) { Write-Host 'Cursor state database not found; nothing to remove.'; exit 0 }; $Node = Get-Command node -ErrorAction SilentlyContinue; if (-not $Node) { throw 'Node.js 22.5 or newer is required to remove the local Cursor configuration.' }; $Script = @'
+const {DatabaseSync}=require('node:sqlite'),db=new DatabaseSync(process.env.CVC_CURSOR_DB),managed=new Set(JSON.parse(process.env.CVC_CURSOR_MODELS)); const appKey='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser',backupKey='promptPort/originalOpenAIState',plainKey='cursorAuth/openAIKey',encryptedKey='secret://cursorAuth/openAIKey'; const read=k=>db.prepare('SELECT value FROM ItemTable WHERE key=?').get(k)?.value??null; const up=(k,v)=>{if(read(k)==null)db.prepare('INSERT INTO ItemTable(key,value) VALUES (?,?)').run(k,v);else db.prepare('UPDATE ItemTable SET value=? WHERE key=?').run(v,k)};const del=k=>db.prepare('DELETE FROM ItemTable WHERE key=?').run(k); try{db.exec('BEGIN IMMEDIATE'); const raw=read(appKey),savedRaw=read(backupKey),saved=savedRaw?JSON.parse(savedRaw):null;let wasPrompt=false;if(raw){const app=JSON.parse(raw),ai=app.aiSettings&&typeof app.aiSettings==='object'?app.aiSettings:{};wasPrompt=app.openAIBaseUrl==='https://cheapvibecode.ru/v1';for(const k of ['userAddedModels','modelOverrideEnabled'])if(Array.isArray(ai[k]))ai[k]=ai[k].filter(x=>!managed.has(x));if(Array.isArray(ai.modelOverrideDisabled))ai.modelOverrideDisabled=ai.modelOverrideDisabled.filter(x=>!managed.has(x));if(Array.isArray(app.availableDefaultModels2))app.availableDefaultModels2=app.availableDefaultModels2.filter(x=>!managed.has(x?.name));if(app.aiSettings?.modelConfig)for(const [k,v] of Object.entries(app.aiSettings.modelConfig))if(managed.has(v?.modelName))delete app.aiSettings.modelConfig[k];if(saved){app.openAIBaseUrl=saved.baseUrl;app.useOpenAIKey=saved.useOpenAIKey}else if(wasPrompt){app.openAIBaseUrl='';app.useOpenAIKey=false}up(appKey,JSON.stringify(app));}if(saved){for(const [k,v] of [[plainKey,saved.plain],[encryptedKey,saved.encrypted]]){del(k);if(v!=null)up(k,v)}}else if(wasPrompt){del(plainKey);del(encryptedKey)}del(backupKey);db.exec('COMMIT');db.close()}catch(e){try{db.exec('ROLLBACK')}catch{};console.error(e.message);process.exit(1)}
+'@; $env:CVC_CURSOR_DB=$Db; $env:CVC_CURSOR_MODELS='${JSON.stringify(cursorInstallModelSpecs().map(item => item[0])).replace(/'/g, "''")}'; & $Node.Source -e $Script; if ($LASTEXITCODE -ne 0) { throw 'Cursor cleanup failed; no remote script was used.' }; Write-Host 'Prompt Port was removed from Cursor. Restart Cursor.'`,
+  mac: String.raw`set -eu; DB="\${CVC_CURSOR_STATE_DB_PATH:-$HOME/Library/Application Support/Cursor/User/globalStorage/state.vscdb}"; [ ! -f "$DB" ] || { command -v python3 >/dev/null 2>&1 || { echo 'Python 3 is required to remove the local Cursor configuration.' >&2; exit 1; }; CVC_CURSOR_DB="$DB" CVC_CURSOR_MODELS='${JSON.stringify(cursorInstallModelSpecs().map(item => item[0]))}' python3 - <<'PROMPT_PORT_PYTHON'
+import json,os,sqlite3
+db=sqlite3.connect(os.environ['CVC_CURSOR_DB']); managed=set(json.loads(os.environ['CVC_CURSOR_MODELS'])); db.execute('BEGIN IMMEDIATE'); app_key='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'; backup_key='promptPort/originalOpenAIState'; plain_key='cursorAuth/openAIKey'; encrypted_key='secret://cursorAuth/openAIKey'; row=db.execute('SELECT value FROM ItemTable WHERE key=?',(app_key,)).fetchone(); saved_row=db.execute('SELECT value FROM ItemTable WHERE key=?',(backup_key,)).fetchone(); saved=json.loads(saved_row[0]) if saved_row else None; was_prompt=False
+if row:
+ app=json.loads(row[0]); was_prompt=app.get('openAIBaseUrl')=='https://cheapvibecode.ru/v1'; ai=app.get('aiSettings') if isinstance(app.get('aiSettings'),dict) else {}; app['aiSettings']=ai
+ for k in ('userAddedModels','modelOverrideEnabled','modelOverrideDisabled'):
+  if isinstance(ai.get(k),list): ai[k]=[x for x in ai[k] if x not in managed]
+ if isinstance(app.get('availableDefaultModels2'),list): app['availableDefaultModels2']=[x for x in app['availableDefaultModels2'] if x.get('name') not in managed]
+ if saved: app['openAIBaseUrl']=saved.get('baseUrl'); app['useOpenAIKey']=saved.get('useOpenAIKey')
+ elif app.get('openAIBaseUrl')=='https://cheapvibecode.ru/v1': app['openAIBaseUrl']=''; app['useOpenAIKey']=False
+ db.execute('UPDATE ItemTable SET value=? WHERE key=?',(json.dumps(app,separators=(',',':')),app_key))
+if saved:
+ for key,value in ((plain_key,saved.get('plain')),(encrypted_key,saved.get('encrypted'))):
+  db.execute('DELETE FROM ItemTable WHERE key=?',(key,))
+  if value is not None: db.execute('INSERT INTO ItemTable(key,value) VALUES (?,?)',(key,value))
+elif was_prompt: db.execute('DELETE FROM ItemTable WHERE key IN (?,?)',(plain_key,encrypted_key))
+db.execute('DELETE FROM ItemTable WHERE key=?',(backup_key,)); db.commit(); db.close()
+PROMPT_PORT_PYTHON
+}; unset CVC_CURSOR_DB CVC_CURSOR_MODELS; printf '%s\n' 'Prompt Port was removed from Cursor. Restart Cursor.'`,
+  linux: String.raw`set -eu; DB="\${CVC_CURSOR_STATE_DB_PATH:-\${XDG_CONFIG_HOME:-$HOME/.config}/Cursor/User/globalStorage/state.vscdb}"; [ ! -f "$DB" ] || { command -v python3 >/dev/null 2>&1 || { echo 'Python 3 is required to remove the local Cursor configuration.' >&2; exit 1; }; CVC_CURSOR_DB="$DB" CVC_CURSOR_MODELS='${JSON.stringify(cursorInstallModelSpecs().map(item => item[0]))}' python3 - <<'PROMPT_PORT_PYTHON'
+import json,os,sqlite3
+db=sqlite3.connect(os.environ['CVC_CURSOR_DB']); managed=set(json.loads(os.environ['CVC_CURSOR_MODELS'])); db.execute('BEGIN IMMEDIATE'); app_key='src.vs.platform.reactivestorage.browser.reactiveStorageServiceImpl.persistentStorage.applicationUser'; backup_key='promptPort/originalOpenAIState'; plain_key='cursorAuth/openAIKey'; encrypted_key='secret://cursorAuth/openAIKey'; row=db.execute('SELECT value FROM ItemTable WHERE key=?',(app_key,)).fetchone(); saved_row=db.execute('SELECT value FROM ItemTable WHERE key=?',(backup_key,)).fetchone(); saved=json.loads(saved_row[0]) if saved_row else None; was_prompt=False
+if row:
+ app=json.loads(row[0]); was_prompt=app.get('openAIBaseUrl')=='https://cheapvibecode.ru/v1'; ai=app.get('aiSettings') if isinstance(app.get('aiSettings'),dict) else {}; app['aiSettings']=ai
+ for k in ('userAddedModels','modelOverrideEnabled','modelOverrideDisabled'):
+  if isinstance(ai.get(k),list): ai[k]=[x for x in ai[k] if x not in managed]
+ if isinstance(app.get('availableDefaultModels2'),list): app['availableDefaultModels2']=[x for x in app['availableDefaultModels2'] if x.get('name') not in managed]
+ if saved: app['openAIBaseUrl']=saved.get('baseUrl'); app['useOpenAIKey']=saved.get('useOpenAIKey')
+ elif app.get('openAIBaseUrl')=='https://cheapvibecode.ru/v1': app['openAIBaseUrl']=''; app['useOpenAIKey']=False
+ db.execute('UPDATE ItemTable SET value=? WHERE key=?',(json.dumps(app,separators=(',',':')),app_key))
+if saved:
+ for key,value in ((plain_key,saved.get('plain')),(encrypted_key,saved.get('encrypted'))):
+  db.execute('DELETE FROM ItemTable WHERE key=?',(key,))
+  if value is not None: db.execute('INSERT INTO ItemTable(key,value) VALUES (?,?)',(key,value))
+elif was_prompt: db.execute('DELETE FROM ItemTable WHERE key IN (?,?)',(plain_key,encrypted_key))
+db.execute('DELETE FROM ItemTable WHERE key=?',(backup_key,)); db.commit(); db.close()
+PROMPT_PORT_PYTHON
+}; unset CVC_CURSOR_DB CVC_CURSOR_MODELS; printf '%s\n' 'Prompt Port was removed from Cursor. Restart Cursor.'`
+};
+
+function normalizeUnixRemovalCommands(commands) {
+  return Object.fromEntries(Object.entries(commands).map(([clientId, command]) => {
+    let normalized = command.replace(/\\\$\{/g, '${');
+    if (clientId === 'cursor') {
+      normalized = normalized
+        .replace(
+          "command -v python3 >/dev/null 2>&1 || { echo 'Python 3 is required to remove the local Cursor configuration.' >&2; exit 1; };",
+          "if command -v python3 >/dev/null 2>&1; then PYTHON_BIN=python3; elif command -v python >/dev/null 2>&1; then PYTHON_BIN=python; else echo 'Python 3 is required to remove the local Cursor configuration.' >&2; exit 1; fi;"
+        )
+        .replace(" python3 - <<'PROMPT_PORT_PYTHON'", " \"$PYTHON_BIN\" - <<'PROMPT_PORT_PYTHON'");
+    }
+    return [clientId, normalized];
+  }));
+}
+
+const removalCommands = {
+  windows: { 'claude-code': claudeCodeRemoval.windows, 'claude-app': claudeAppRemoval.windows, hermes: hermesRemoval.windows, grok: grokRemoval.windows, opencode: opencodeRemoval.windows, cursor: cursorRemoval.windows, 'codex-vscode': codexRemovalCommands.windows, 'codex-app': codexRemovalCommands.windows, 'codex-cli': codexRemovalCommands.windows },
+  mac: normalizeUnixRemovalCommands({ 'claude-code': claudeCodeRemoval.mac, 'claude-app': claudeAppRemoval.mac, hermes: hermesRemoval.mac, grok: grokRemoval.mac, opencode: opencodeRemoval.mac, cursor: cursorRemoval.mac, 'codex-vscode': codexRemovalCommands.mac, 'codex-cli': codexRemovalCommands.mac, 'codex-app': codexRemovalCommands.mac }),
+  linux: normalizeUnixRemovalCommands({ 'claude-code': claudeCodeRemoval.linux, hermes: hermesRemoval.linux, grok: grokRemoval.linux, opencode: opencodeRemoval.linux, cursor: cursorRemoval.linux, 'codex-vscode': codexRemovalCommands.linux, 'codex-cli': codexRemovalCommands.linux })
 };
 
 const modelCatalog = [
