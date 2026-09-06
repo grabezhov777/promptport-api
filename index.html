@@ -5186,14 +5186,78 @@ function cursorManualGuide(os) {
   return `Откройте Cursor → Settings → Models и добавьте OpenAI-совместимый API:\n\nBase URL: https://cheapvibecode.ru/v1\nAPI key: ВАШ_API_КЛЮЧ\nModel: ${defaultModel}\n\nДобавьте только доступные этому ключу модели:\n\n${unique.join('\n')}`;
 }
 
-// Every entry is explicitly keyed by both OS and client to prevent commands
-// from leaking across platforms. Public remover scripts come from the client
-// setup documentation; Codex uses local credential cleanup because no public
-// remover endpoint is published for its variants.
+// Codex cleanup is performed locally and only removes the Prompt Port provider
+// and CVC_API_KEY. Personal OpenAI login data in auth.json is left untouched.
 const codexRemovalCommands = {
-  windows: `[Environment]::SetEnvironmentVariable('CVC_API_KEY',$null,'User'); [Environment]::SetEnvironmentVariable('OPENAI_API_KEY',$null,'User'); Remove-Item Env:CVC_API_KEY,Env:OPENAI_API_KEY -ErrorAction SilentlyContinue; $d=Join-Path ([Environment]::GetFolderPath('UserProfile')) '.codex'; $a=Join-Path $d 'auth.json'; if(Test-Path $a){$j=Get-Content $a -Raw|ConvertFrom-Json; $j.PSObject.Properties.Remove('OPENAI_API_KEY'); $j.PSObject.Properties.Remove('CVC_API_KEY'); $j|ConvertTo-Json -Depth 20|Set-Content $a -Encoding utf8}; @('.env','cheapvibecode.env')|ForEach-Object{$p=Join-Path $d $_; if(Test-Path $p){(Get-Content $p)|Where-Object{$_ -notmatch '^(CVC_API_KEY|OPENAI_API_KEY)='}|Set-Content $p -Encoding utf8}}`,
-  mac: `python3 -c 'import json,pathlib; p=pathlib.Path.home()/".codex"/"auth.json"; d=json.loads(p.read_text()) if p.exists() else {}; d.pop("OPENAI_API_KEY",None); d.pop("CVC_API_KEY",None); p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\\n") if p.exists() else None'; sed -E -i '' '/^export (CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.zshrc" "$HOME/.bashrc" 2>/dev/null; sed -E -i '' '/^(CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.codex/.env" "$HOME/.codex/cheapvibecode.env" 2>/dev/null; unset CVC_API_KEY OPENAI_API_KEY`,
-  linux: `python3 -c 'import json,pathlib; p=pathlib.Path.home()/".codex"/"auth.json"; d=json.loads(p.read_text()) if p.exists() else {}; d.pop("OPENAI_API_KEY",None); d.pop("CVC_API_KEY",None); p.write_text(json.dumps(d,ensure_ascii=False,indent=2)+"\\n") if p.exists() else None'; sed -E -i '/^export (CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.zshrc" "$HOME/.bashrc" 2>/dev/null; sed -E -i '/^(CVC_API_KEY|OPENAI_API_KEY)=/d' "$HOME/.codex/.env" "$HOME/.codex/cheapvibecode.env" 2>/dev/null; unset CVC_API_KEY OPENAI_API_KEY`
+  windows: String.raw`$ErrorActionPreference = 'Stop'
+$Dir = Join-Path $HOME '.codex'
+$ConfigPath = Join-Path $Dir 'config.toml'
+$Utf8 = New-Object System.Text.UTF8Encoding($false)
+if (Test-Path $ConfigPath) {
+  $BackupDir = Join-Path $Dir 'backups'
+  New-Item -ItemType Directory -Force $BackupDir | Out-Null
+  Copy-Item $ConfigPath (Join-Path $BackupDir ('config-before-remove-' + (Get-Date -Format yyyyMMdd-HHmmss-fff) + '.toml')) -Force
+  $Kept = New-Object System.Collections.Generic.List[string]
+  $Skip = $false; $InTop = $true
+  foreach ($Line in @(Get-Content $ConfigPath -Encoding UTF8)) {
+    if ($Line -match '^\s*\[') {
+      $InTop = $false
+      $Skip = $Line -match '^\s*\[model_providers\.cheapvibecode\]\s*$'
+      if ($Skip) { continue }
+    }
+    if ($Skip) { continue }
+    if ($InTop -and $Line -match '^\s*(?:model|model_reasoning_effort|model_provider|web_search)\s*=') { continue }
+    $Kept.Add($Line)
+  }
+  $Text = ([string]::Join([Environment]::NewLine, $Kept)).Trim()
+  if ($Text) { [IO.File]::WriteAllText($ConfigPath, $Text + [Environment]::NewLine, $Utf8) } else { Remove-Item $ConfigPath -Force }
+}
+foreach ($Name in @('.env','cheapvibecode.env')) {
+  $Path = Join-Path $Dir $Name
+  if (Test-Path $Path) {
+    $Lines = @(Get-Content $Path -Encoding UTF8 | Where-Object { $_ -notmatch '^\s*CVC_API_KEY\s*=' })
+    [IO.File]::WriteAllText($Path, ([string]::Join([Environment]::NewLine, $Lines)).TrimEnd() + [Environment]::NewLine, $Utf8)
+  }
+}
+[Environment]::SetEnvironmentVariable('CVC_API_KEY',$null,'User')
+Remove-Item Env:CVC_API_KEY -ErrorAction SilentlyContinue
+Write-Host 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`,
+  mac: String.raw`set -eu
+DIR="$HOME/.codex"
+CONFIG="$DIR/config.toml"
+BACKUP="$DIR/backups/config-before-remove-$(date +%Y%m%d-%H%M%S).toml"
+if [ -f "$CONFIG" ]; then
+  mkdir -p "$DIR/backups"; cp "$CONFIG" "$BACKUP"; TMP="$CONFIG.prompt-port.tmp.$$"
+  awk 'BEGIN{skip=0;top=1} /^[[:space:]]*\[/{top=0;skip=($0 ~ /^[[:space:]]*\[model_providers\.cheapvibecode\][[:space:]]*$/);if(skip)next} skip{next} top && /^[[:space:]]*(model|model_reasoning_effort|model_provider|web_search)[[:space:]]*=/{next} {print}' "$CONFIG" > "$TMP"
+  if grep -q '[^[:space:]]' "$TMP"; then mv "$TMP" "$CONFIG"; else rm -f "$TMP" "$CONFIG"; fi
+fi
+for PROFILE in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do
+  [ ! -f "$PROFILE" ] || { TMP="$PROFILE.prompt-port.tmp.$$"; sed -E '/^export CVC_API_KEY=/d' "$PROFILE" > "$TMP"; mv "$TMP" "$PROFILE"; }
+done
+for FILE in "$DIR/.env" "$DIR/cheapvibecode.env"; do
+  [ ! -f "$FILE" ] || { TMP="$FILE.prompt-port.tmp.$$"; sed -E '/^CVC_API_KEY=/d' "$FILE" > "$TMP"; mv "$TMP" "$FILE"; }
+done
+launchctl unsetenv CVC_API_KEY >/dev/null 2>&1 || true
+unset CVC_API_KEY || true
+printf '%s\n' 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`,
+  linux: String.raw`set -eu
+DIR="$HOME/.codex"
+CONFIG="$DIR/config.toml"
+BACKUP="$DIR/backups/config-before-remove-$(date +%Y%m%d-%H%M%S).toml"
+if [ -f "$CONFIG" ]; then
+  mkdir -p "$DIR/backups"; cp "$CONFIG" "$BACKUP"; TMP="$CONFIG.prompt-port.tmp.$$"
+  awk 'BEGIN{skip=0;top=1} /^[[:space:]]*\[/{top=0;skip=($0 ~ /^[[:space:]]*\[model_providers\.cheapvibecode\][[:space:]]*$/);if(skip)next} skip{next} top && /^[[:space:]]*(model|model_reasoning_effort|model_provider|web_search)[[:space:]]*=/{next} {print}' "$CONFIG" > "$TMP"
+  if grep -q '[^[:space:]]' "$TMP"; then mv "$TMP" "$CONFIG"; else rm -f "$TMP" "$CONFIG"; fi
+fi
+for PROFILE in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do
+  [ ! -f "$PROFILE" ] || { TMP="$PROFILE.prompt-port.tmp.$$"; sed -E '/^export CVC_API_KEY=/d' "$PROFILE" > "$TMP"; mv "$TMP" "$PROFILE"; }
+done
+for FILE in "$DIR/.env" "$DIR/cheapvibecode.env"; do
+  [ ! -f "$FILE" ] || { TMP="$FILE.prompt-port.tmp.$$"; sed -E '/^CVC_API_KEY=/d' "$FILE" > "$TMP"; mv "$TMP" "$FILE"; }
+done
+command -v systemctl >/dev/null 2>&1 && systemctl --user unset-environment CVC_API_KEY >/dev/null 2>&1 || true
+unset CVC_API_KEY || true
+printf '%s\n' 'Prompt Port was removed from Codex. Restart every Codex and VS Code window.'`
 };
 
 const removalCommands = {
