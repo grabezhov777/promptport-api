@@ -4351,8 +4351,23 @@ function augmentAdditionalClients() {
   }
 }
 
-function codexVscodeManualGuide(manual) {
-  return String(manual || '').replace(/model = "gpt-5\.6-terra"/g, 'model = "gpt-6-astra"');
+function codexManualGuide(os, clientId) {
+  const model = clientId === 'codex-vscode' ? 'gpt-6-astra' : 'gpt-5.6-terra';
+  const configPath = os === 'windows' ? '%USERPROFILE%\\.codex\\config.toml' : '~/.codex/config.toml';
+  const config = `model = "${model}"
+model_reasoning_effort = "high"
+model_provider = "cheapvibecode"
+
+[model_providers.cheapvibecode]
+name = "CheapVibeCode"
+base_url = "https://cheapvibecode.ru/backend-api/codex"
+wire_api = "responses"
+env_key = "CVC_API_KEY"
+supports_websockets = false
+requires_openai_auth = false`;
+  if (os === 'windows') return `Полностью закройте все окна VS Code и Codex. Откройте ${configPath} и добавьте конфигурацию:\n\n${config}\n\nЗатем задайте новый ключ в PowerShell:\n\n[Environment]::SetEnvironmentVariable("CVC_API_KEY","ВАШ_API_КЛЮЧ","User")\n$env:CVC_API_KEY="ВАШ_API_КЛЮЧ"\n\nОткройте VS Code заново. requires_openai_auth = false обязателен: тогда Codex берёт новый ключ именно из CVC_API_KEY, а не из старого входа, сохранённого системой.`;
+  if (os === 'mac') return `Полностью закройте VS Code и Codex. Откройте ${configPath} и добавьте конфигурацию:\n\n${config}\n\nЗатем задайте новый ключ в Terminal:\n\nexport CVC_API_KEY="ВАШ_API_КЛЮЧ"\nlaunchctl setenv CVC_API_KEY "ВАШ_API_КЛЮЧ"\n\nСохраните export CVC_API_KEY="ВАШ_API_КЛЮЧ" в ~/.zprofile или ~/.zshrc и откройте VS Code заново. requires_openai_auth = false обязателен: тогда Codex использует CVC_API_KEY, а не старый ключ из Keychain.`;
+  return `Полностью закройте VS Code и Codex. Откройте ${configPath} и добавьте конфигурацию:\n\n${config}\n\nЗатем задайте новый ключ в терминале:\n\nexport CVC_API_KEY="ВАШ_API_КЛЮЧ"\n\nСохраните export CVC_API_KEY="ВАШ_API_КЛЮЧ" в ~/.profile, затем откройте VS Code из этого терминала командой code или перезапустите сеанс Linux. requires_openai_auth = false обязателен: тогда Codex использует CVC_API_KEY, а не старые сохранённые данные входа.`;
 }
 
 // Quick setup is generated directly in the browser. These scripts are fully
@@ -4760,7 +4775,7 @@ $Stamp = Get-Date -Format yyyyMMdd-HHmmss-fff
 $Backup = Join-Path $Dir (Join-Path 'backups' "prompt-port-${clientId}-$Stamp")
 $Utf8 = New-Object System.Text.UTF8Encoding($false)
 New-Item -ItemType Directory -Force $Dir, $Backup | Out-Null
-foreach ($Name in @('config.toml','auth.json','.env','cheapvibecode.env')) { $Path = Join-Path $Dir $Name; if (Test-Path $Path) { Copy-Item $Path (Join-Path $Backup $Name) -Force } }
+if (Test-Path (Join-Path $Dir 'config.toml')) { Copy-Item (Join-Path $Dir 'config.toml') (Join-Path $Backup 'config.toml') -Force }
 $ConfigPath = Join-Path $Dir 'config.toml'
 $InputLines = if (Test-Path $ConfigPath) { @(Get-Content $ConfigPath -Encoding UTF8) } else { @() }
 $Kept = New-Object System.Collections.Generic.List[string]
@@ -4776,29 +4791,15 @@ foreach ($Line in $InputLines) {
   $Kept.Add($Line)
 }
 while ($Kept.Count -and [string]::IsNullOrWhiteSpace($Kept[0])) { $Kept.RemoveAt(0) }
-$Managed = @('model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true','')
+$Managed = @('model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = false','')
 $Out = New-Object System.Collections.Generic.List[string]; $Managed | ForEach-Object { $Out.Add($_) }; $Kept | ForEach-Object { $Out.Add($_) }
 [IO.File]::WriteAllText($ConfigPath, ([string]::Join([Environment]::NewLine, $Out).TrimEnd() + [Environment]::NewLine), $Utf8)
-$AuthPath = Join-Path $Dir 'auth.json'; $Auth = [pscustomobject]@{}
-if (Test-Path $AuthPath) { try { $Raw=Get-Content $AuthPath -Raw -Encoding UTF8; if (-not [string]::IsNullOrWhiteSpace($Raw)) { $Auth=$Raw|ConvertFrom-Json } } catch { throw "Codex auth.json is invalid. Backup: $Backup" } }
-if ($null -eq $Auth -or $Auth -isnot [pscustomobject]) { $Auth=[pscustomobject]@{} }
-function Set-Value($Object,$Name,$Value) { if ($Object.PSObject.Properties.Name -contains $Name) { $Object.$Name=$Value } else { $Object|Add-Member -NotePropertyName $Name -NotePropertyValue $Value } }
-Set-Value $Auth 'auth_mode' 'apikey'; Set-Value $Auth 'OPENAI_API_KEY' $ApiKey
-[IO.File]::WriteAllText($AuthPath, ($Auth|ConvertTo-Json -Depth 30)+[Environment]::NewLine, $Utf8)
-function Write-Env($Path) {
-  $Lines=New-Object System.Collections.Generic.List[string]
-  if(Test-Path $Path){Get-Content $Path -Encoding UTF8|Where-Object{$_ -notmatch '^\s*(?:CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)\s*='}|ForEach-Object{$Lines.Add($_)}}
-  while($Lines.Count -and [string]::IsNullOrWhiteSpace($Lines[$Lines.Count-1])){$Lines.RemoveAt($Lines.Count-1)}
-  if($Lines.Count){$Lines.Add('')}; $Lines.Add('CVC_API_KEY='+$ApiKey); $Lines.Add('OPENAI_API_KEY='+$ApiKey); $Lines.Add('OPENAI_BASE_URL=https://cheapvibecode.ru/v1')
-  [IO.File]::WriteAllText($Path,([string]::Join([Environment]::NewLine,$Lines)+[Environment]::NewLine),$Utf8)
-}
-Write-Env (Join-Path $Dir '.env'); Write-Env (Join-Path $Dir 'cheapvibecode.env')
+$env:CVC_API_KEY = $ApiKey
 [Environment]::SetEnvironmentVariable('CVC_API_KEY',$ApiKey,'User')
-[Environment]::SetEnvironmentVariable('OPENAI_API_KEY',$ApiKey,'User')
-[Environment]::SetEnvironmentVariable('OPENAI_BASE_URL','https://cheapvibecode.ru/v1','User')
 Write-Host "Codex configured: $Dir"
 Write-Host "Backup: $Backup"
-Write-Host 'Restart the client. Existing chats were not changed.'`;
+Write-Host 'The new key replaced the previous Prompt Port key.'
+Write-Host 'Fully close every Codex and VS Code window, then start the client again.'`;
 
   return '';
 }
@@ -5122,7 +5123,7 @@ DIR="$HOME/.codex"
 BACKUP="$DIR/backups/prompt-port-${clientId}-$(date +%Y%m%d-%H%M%S)"
 if ! command -v node >/dev/null 2>&1; then printf '%s\n' 'Node.js is required to safely merge Codex settings.' >&2; exit 1; fi
 mkdir -p "$DIR" "$BACKUP"
-for NAME in config.toml auth.json .env cheapvibecode.env; do [ ! -f "$DIR/$NAME" ] || cp "$DIR/$NAME" "$BACKUP/$NAME"; done
+[ ! -f "$DIR/config.toml" ] || cp "$DIR/config.toml" "$BACKUP/config.toml"
 export PROMPT_PORT_CODEX_DIR="$DIR" PROMPT_PORT_CODEX_KEY="$API_KEY"
 node <<'PROMPT_PORT_NODE'
 const fs = require('fs'), path = require('path');
@@ -5137,35 +5138,23 @@ for (const line of lines) {
   kept.push(line);
 }
 while (kept.length && !kept[0].trim()) kept.shift();
-const managed = ['model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = true',''];
+const managed = ['model = "${codexDefault}"','model_reasoning_effort = "high"','model_provider = "cheapvibecode"','web_search = "live"','','[model_providers.cheapvibecode]','name = "CheapVibeCode"','base_url = "https://cheapvibecode.ru/backend-api/codex"','wire_api = "responses"','env_key = "CVC_API_KEY"','supports_websockets = false','requires_openai_auth = false',''];
 fs.writeFileSync(configPath, managed.concat(kept).join('\n').trimEnd() + '\n', { mode: 0o600 });
-const authPath = path.join(dir, 'auth.json'); let auth = {};
-try { const raw = fs.existsSync(authPath) ? fs.readFileSync(authPath, 'utf8') : ''; auth = raw.trim() ? JSON.parse(raw) : {}; }
-catch (error) { console.error('Codex auth.json is invalid: ' + error.message); process.exit(1); }
-if (!auth || typeof auth !== 'object' || Array.isArray(auth)) auth = {};
-auth.auth_mode = 'apikey'; auth.OPENAI_API_KEY = key;
-fs.writeFileSync(authPath, JSON.stringify(auth, null, 2) + '\n', { mode: 0o600 });
-for (const name of ['.env', 'cheapvibecode.env']) {
-  const target = path.join(dir, name); let env = fs.existsSync(target) ? fs.readFileSync(target, 'utf8').split(/\r?\n/) : [];
-  env = env.filter(line => !/^\s*(?:CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)\s*=/.test(line));
-  while (env.length && !env.at(-1).trim()) env.pop(); if (env.length) env.push('');
-  env.push('CVC_API_KEY=' + key, 'OPENAI_API_KEY=' + key, 'OPENAI_BASE_URL=https://cheapvibecode.ru/v1');
-  fs.writeFileSync(target, env.join('\n') + '\n', { mode: 0o600 });
-}
 PROMPT_PORT_NODE
-chmod 600 "$DIR/config.toml" "$DIR/auth.json" "$DIR/.env" "$DIR/cheapvibecode.env"
-for PROFILE in "$HOME/.zshrc" "$HOME/.bashrc"; do
-  [ -f "$PROFILE" ] || continue
+chmod 600 "$DIR/config.toml"
+for PROFILE in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do
+  [ -f "$PROFILE" ] || { [ "$PROFILE" = "$HOME/.profile" ] && : > "$PROFILE" || continue; }
   cp "$PROFILE" "$BACKUP/$(basename "$PROFILE")"
   TMP="$PROFILE.prompt-port.tmp.$$"
-  sed -E '/^export (CVC_API_KEY|OPENAI_API_KEY|OPENAI_BASE_URL)=/d' "$PROFILE" > "$TMP"
-  printf '%s\n' "export CVC_API_KEY='${key}'" "export OPENAI_API_KEY='${key}'" "export OPENAI_BASE_URL='https://cheapvibecode.ru/v1'" >> "$TMP"
+  sed -E '/^export CVC_API_KEY=/d' "$PROFILE" > "$TMP"
+  printf '%s\n' "export CVC_API_KEY='${key}'" >> "$TMP"
   mv "$TMP" "$PROFILE"
 done
-${os === 'mac' && clientId === 'codex-app' ? `launchctl setenv CVC_API_KEY "$API_KEY" || true
-launchctl setenv OPENAI_API_KEY "$API_KEY" || true
-launchctl setenv OPENAI_BASE_URL 'https://cheapvibecode.ru/v1' || true` : ''}
-printf '%s\n' 'Codex configured. Existing chats were not changed.' "Backup: $BACKUP" 'Restart the client.'`;
+export CVC_API_KEY="$API_KEY"
+${os === 'mac' && (clientId === 'codex-app' || clientId === 'codex-vscode') ? `launchctl setenv CVC_API_KEY "$API_KEY" || true
+` : ''}
+${os === 'linux' ? `command -v systemctl >/dev/null 2>&1 && systemctl --user set-environment CVC_API_KEY="$API_KEY" >/dev/null 2>&1 || true` : ''}
+printf '%s\n' 'The new key replaced the previous Prompt Port key.' "Backup: $BACKUP" 'Fully close every Codex and VS Code window, then start the client again.'`;
   }
 
   return '';
@@ -6224,8 +6213,8 @@ function renderGuide() {
   const removal = removalCommands[state.os]?.[item.id] || '';
   const manualSource = item.id === 'cursor'
     ? cursorManualGuide(state.os)
-    : item.id === 'codex-vscode'
-      ? codexVscodeManualGuide(item.manual)
+    : ['codex-vscode', 'codex-app', 'codex-cli'].includes(item.id)
+      ? codexManualGuide(state.os, item.id)
       : item.manual;
   const manual = runtimeText(manualSource, item.id);
   const blocks = guideBlocks(manual);
