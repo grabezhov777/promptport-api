@@ -2484,6 +2484,15 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 </head>
 <body class="is-loading">
   <div class="page-loader" id="pageLoader" aria-hidden="true"></div>
+  <script>
+    // Fail-safe: a later application error must never trap visitors behind
+    // the cinematic black loading layer.
+    window.setTimeout(function () {
+      var loader = document.getElementById('pageLoader');
+      if (loader) loader.classList.add('is-hidden');
+      document.body.classList.remove('is-loading');
+    }, 4000);
+  </script>
   <video class="hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
     <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260315_073750_51473149-4350-4920-ae24-c8214286f323.mp4" type="video/mp4">
   </video>
@@ -4301,6 +4310,32 @@ const i18n = {
   }
 };
 
+// The command builders below need the catalog while they are initialized
+// (not only after the page has loaded), so keep it before appMeta/removers.
+const modelCatalog = [
+  ['gpt-6-astra', 'OpenAI', '6.5'],
+  ['gpt-5.6-sol', 'OpenAI', '2.5'], ['gpt-5.6-terra', 'OpenAI', '1.2'],
+  ['gpt-5.6-luna', 'OpenAI', '0.33'], ['gpt-5.5', 'OpenAI', '2.5'],
+  ['gpt-5.4', 'OpenAI', '1.5'], ['gpt-5.4-mini', 'OpenAI', '0.8'],
+  ['claude-opus-5', 'Anthropic', '4'], ['claude-fable-5', 'Anthropic', '8'],
+  ['claude-opus-4-8', 'Anthropic', '4'], ['claude-opus-4-7', 'Anthropic', '4'],
+  ['claude-sonnet-5', 'Anthropic', '2'], ['claude-sonnet-4-6', 'Anthropic', '2'],
+  ['claude-opus-4-6', 'Anthropic', '4'], ['claude-haiku-4-5', 'Anthropic', '0.9'],
+  ['gemini-3.7-flash', 'Google', '1'], ['gemini-3.8-flash', 'Google', '1'],
+  ['gemini-3.5-flash', 'Google', '1'], ['gemini-3.6-flash', 'Google', '1'],
+  ['gemini-3.1-pro', 'Google', '2'],
+  ['grok-4.6', 'xAI', '0.8'], ['grok-4.5', 'xAI', '0.8'],
+  ['kimi-k3', 'Moonshot', '4'], ['qwen3.8-max', 'Alibaba', '3'],
+  ['hy4-preview', 'HY', '1'], ['glm-5.3', 'Z AI', '1.9'],
+  ['qwen3.8-flash', 'Alibaba', '1'], ['glm-5.3-flash', 'Z AI', '0.5'],
+  ['deepseek-v4-pro', 'DeepSeek', '0.6'], ['deepseek-v4-flash', 'DeepSeek', '0.1'],
+  ['glm-5.2', 'Z AI', '1.9'],
+  ['minimax-m3', 'MiniMax', '0.45'], ['kimi-k2.7-code', 'Moonshot', '1.5'],
+  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['glm-5-turbo', 'Z AI', '1.38'],
+  ['mimo-v2.5', 'Xiaomi', '0.05']
+];
+let models = modelCatalog.map(model => [...model]);
+
 const appMeta = {
   'claude-code': { title: 'Claude Code (CLI & VSC)', glyph: 'CL', claude: true, emphasis: 'Code' },
   'claude-app': { title: 'Claude App', glyph: 'CA', claude: true, emphasis: 'App' },
@@ -5447,30 +5482,6 @@ const removalCommands = {
   mac: normalizeUnixRemovalCommands({ 'claude-code': claudeCodeRemoval.mac, 'claude-app': claudeAppRemoval.mac, hermes: hermesRemoval.mac, grok: grokRemoval.mac, opencode: opencodeRemoval.mac, cursor: cursorRemoval.mac, 'codex-vscode': codexRemovalCommands.mac, 'codex-cli': codexRemovalCommands.mac, 'codex-app': codexRemovalCommands.mac }),
   linux: normalizeUnixRemovalCommands({ 'claude-code': claudeCodeRemoval.linux, hermes: hermesRemoval.linux, grok: grokRemoval.linux, opencode: opencodeRemoval.linux, cursor: cursorRemoval.linux, 'codex-vscode': codexRemovalCommands.linux, 'codex-cli': codexRemovalCommands.linux })
 };
-
-const modelCatalog = [
-  ['gpt-6-astra', 'OpenAI', '6.5'],
-  ['gpt-5.6-sol', 'OpenAI', '2.5'], ['gpt-5.6-terra', 'OpenAI', '1.2'],
-  ['gpt-5.6-luna', 'OpenAI', '0.33'], ['gpt-5.5', 'OpenAI', '2.5'],
-  ['gpt-5.4', 'OpenAI', '1.5'], ['gpt-5.4-mini', 'OpenAI', '0.8'],
-  ['claude-opus-5', 'Anthropic', '4'], ['claude-fable-5', 'Anthropic', '8'],
-  ['claude-opus-4-8', 'Anthropic', '4'], ['claude-opus-4-7', 'Anthropic', '4'],
-  ['claude-sonnet-5', 'Anthropic', '2'], ['claude-sonnet-4-6', 'Anthropic', '2'],
-  ['claude-opus-4-6', 'Anthropic', '4'], ['claude-haiku-4-5', 'Anthropic', '0.9'],
-  ['gemini-3.7-flash', 'Google', '1'], ['gemini-3.8-flash', 'Google', '1'],
-  ['gemini-3.5-flash', 'Google', '1'], ['gemini-3.6-flash', 'Google', '1'],
-  ['gemini-3.1-pro', 'Google', '2'],
-  ['grok-4.6', 'xAI', '0.8'], ['grok-4.5', 'xAI', '0.8'],
-  ['kimi-k3', 'Moonshot', '4'], ['qwen3.8-max', 'Alibaba', '3'],
-  ['hy4-preview', 'HY', '1'], ['glm-5.3', 'Z AI', '1.9'],
-  ['qwen3.8-flash', 'Alibaba', '1'], ['glm-5.3-flash', 'Z AI', '0.5'],
-  ['deepseek-v4-pro', 'DeepSeek', '0.6'], ['deepseek-v4-flash', 'DeepSeek', '0.1'],
-  ['glm-5.2', 'Z AI', '1.9'],
-  ['minimax-m3', 'MiniMax', '0.45'], ['kimi-k2.7-code', 'Moonshot', '1.5'],
-  ['mimo-v2.5-pro', 'Xiaomi', '0.3'], ['glm-5-turbo', 'Z AI', '1.38'],
-  ['mimo-v2.5', 'Xiaomi', '0.05']
-];
-let models = modelCatalog.map(model => [...model]);
 
 function modelCoefficient(modelId) {
   const entry = modelCatalog.find(([id]) => id === modelId);
