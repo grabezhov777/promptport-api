@@ -2480,6 +2480,43 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .nav-chat .nav-beta { position:absolute; top:2px; right:2px; display:inline-flex !important; padding:2px 3px !important; font-size:5px !important; }
   .guide-index { display:none; }
 }
+.image-studio { display:grid; grid-template-columns:minmax(280px,360px) minmax(0,1fr); gap:24px; align-items:start; }
+.image-settings,.image-output { padding:28px; border-radius:28px; background:rgba(19,33,26,.68); backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px); box-shadow:inset 0 1px 1px rgba(220,255,232,.2),inset 0 0 0 1px rgba(159,224,183,.12); min-width:0; }
+.image-settings { display:flex; flex-direction:column; gap:12px; }
+.image-settings label { display:block; color:#e2f3e8; font-size:12px; margin-bottom:4px; }
+.image-settings textarea,.image-settings select { width:100%; min-width:0; color:#effff4; background:#20362a; border:1px solid rgba(159,224,183,.22); border-radius:12px; padding:12px; font:inherit; font-size:13px; }
+.image-settings textarea { resize:vertical; min-height:155px; line-height:1.7; }
+.image-settings textarea:focus,.image-settings select:focus { outline:2px solid #9fe0b7; outline-offset:2px; }
+.image-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+.image-hint { color:rgba(226,243,232,.72); font-size:11px; line-height:1.7; margin:0; }
+.image-settings .primary-button { min-height:52px; font-size:12px; padding:12px; }
+.image-output { min-height:440px; }
+.image-notice { padding:18px; border-radius:16px; background:rgba(159,224,183,.07); color:#e2f3e8; line-height:1.7; font-size:13px; margin-bottom:16px; }
+.image-notice.is-error { color:#ffb9b9; background:rgba(185,48,48,.16); box-shadow:inset 0 0 0 1px rgba(255,123,123,.5); }
+.image-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.image-results figure { margin:0; min-width:0; }
+.image-results img { display:block; width:100%; aspect-ratio:1; object-fit:contain; border-radius:18px; background:rgba(0,0,0,.18); }
+.image-results a { display:inline-block; color:#b9f1cd; padding:12px 0; font-size:12px; }
+.image-results figcaption { font-size:11px; color:#b7c9bd; overflow-wrap:anywhere; }
+.main-nav .nav-link[hidden] { display:none !important; }
+@media(max-width:900px) { .image-studio { grid-template-columns:1fr; gap:16px; } .image-settings,.image-output { padding:20px; } .image-output { min-height:220px; } .main-nav { grid-template-columns:repeat(5,minmax(0,1fr)); } }
+@media(max-width:380px) { .image-results { grid-template-columns:1fr; } .main-nav .nav-link { font-size:8px; padding-inline:2px; } }
+.static-background { position:fixed; inset:0; z-index:0; pointer-events:none; background:radial-gradient(ellipse at 78% 25%,#294537 0%,transparent 55%),radial-gradient(ellipse at 18% 82%,#192f26 0%,transparent 60%),#080e0b; }
+.hero-video[hidden] { display:none !important; }
+.video-toggle { position:fixed; z-index:90; right:max(24px,env(safe-area-inset-right)); bottom:max(24px,env(safe-area-inset-bottom)); display:inline-flex; align-items:center; justify-content:center; gap:9px; height:46px; padding:0 17px; border:0; border-radius:18px; overflow:hidden; background:rgba(255,255,255,.035); backdrop-filter:blur(50px); -webkit-backdrop-filter:blur(50px); color:#e7f5ec; box-shadow:inset 0 1px 1px rgba(255,255,255,.18),4px 4px 34px rgba(0,0,0,.14); font:500 11px var(--sans); cursor:pointer; transition:background .2s,color .2s; }
+.video-toggle::before { content:''; position:absolute; inset:0; border-radius:inherit; padding:1.4px; background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.2) 20%,transparent 42%,transparent 62%,rgba(255,255,255,.2) 82%,rgba(255,255,255,.5)); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
+.video-toggle:hover { background:rgba(255,255,255,.09); color:#fff; }
+.video-toggle:focus-visible { outline:2px solid #b9f1cd; outline-offset:3px; }
+.video-toggle svg { width:18px; height:18px; fill:none; stroke:currentColor; stroke-width:1.7; }
+.video-toggle .video-slash { display:none; }
+.video-toggle[aria-pressed="false"] .video-slash { display:block; }
+@media(max-width:900px) {
+  .video-toggle { right:max(16px,env(safe-area-inset-right)); bottom:max(16px,env(safe-area-inset-bottom)); height:44px; padding:0 14px; }
+  body:has(.app-shell.is-ready) .video-toggle { bottom:calc(78px + env(safe-area-inset-bottom)); }
+  .entry { padding-bottom:76px; }
+  .view:not(.chat-view) { padding-bottom:95px; }
+  .chat-view { padding-bottom:calc(134px + env(safe-area-inset-bottom)); }
+}
   </style>
 </head>
 <body class="is-loading">
@@ -2493,9 +2530,67 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       document.body.classList.remove('is-loading');
     }, 4000);
   </script>
-  <video class="hero-video" autoplay muted loop playsinline preload="metadata" aria-hidden="true">
-    <source src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260315_073750_51473149-4350-4920-ae24-c8214286f323.mp4" type="video/mp4">
+  <div class="static-background" aria-hidden="true" hidden></div>
+  <video class="hero-video" muted loop playsinline preload="none" aria-hidden="true" hidden>
+    <source data-src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260315_073750_51473149-4350-4920-ae24-c8214286f323.mp4" type="video/mp4">
   </video>
+  <script>
+  // Background preference is read before attaching a source: an opted-out
+  // visitor must not download or decode the video, including after reload.
+  (() => {
+    const video = document.querySelector('.hero-video');
+    const source = video.querySelector('source');
+    const storageKey = 'prompt_port_background_video';
+    let enabled = true, revision = 0;
+    try { enabled = localStorage.getItem(storageKey) !== 'off'; } catch {}
+    function render() {
+      const english = document.documentElement.lang === 'en';
+      document.querySelectorAll('[data-video-toggle]').forEach(button => {
+        button.setAttribute('aria-pressed', String(enabled));
+        button.title = english ? (enabled ? 'Turn off background video to reduce load' : 'Turn on background video') : (enabled ? 'Отключить фоновое видео и снизить нагрузку' : 'Включить фоновое видео');
+        button.setAttribute('aria-label', button.title);
+        button.querySelector('span').textContent = english ? (enabled ? 'Video on' : 'Video off') : (enabled ? 'Видео вкл' : 'Видео выкл');
+      });
+    }
+    function play() {
+      if (!enabled || document.hidden) return;
+      const attempt = revision;
+      video.play()?.catch(() => {
+        if (attempt === revision && enabled && !document.hidden) setEnabled(false, false);
+      });
+    }
+    function setEnabled(value, persist = true) {
+      enabled = value;
+      revision += 1;
+      if (persist) { try { localStorage.setItem(storageKey, value ? 'on' : 'off'); } catch {} }
+      video.hidden = !value;
+      document.querySelector('.static-background').hidden = value;
+      if (value) {
+        video.muted = true;
+        source.setAttribute('src', source.dataset.src);
+        video.load();
+        play();
+      } else {
+        video.pause();
+        source.removeAttribute('src');
+        video.removeAttribute('src');
+        video.load();
+      }
+      render();
+    }
+    window.backgroundVideo = { render, get enabled() { return enabled; } };
+    document.addEventListener('click', event => {
+      if (event.target.closest('[data-video-toggle]')) setEnabled(!enabled);
+    });
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) { revision += 1; video.pause(); } else play();
+    });
+    document.addEventListener('DOMContentLoaded', render, { once:true });
+    video.addEventListener('error', () => { if (enabled && video.error) setEnabled(false, false); });
+    setEnabled(enabled, false);
+  })();
+  </script>
+  <button type="button" class="video-toggle" data-video-toggle aria-pressed="true" aria-label="Отключить фоновое видео"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="6" width="12" height="12" rx="3"/><path d="m15 10 6-3v10l-6-3"/><path class="video-slash" d="m3 3 18 18"/></svg><span>Видео вкл</span></button>
   <canvas id="torusCanvas"></canvas>
   <div class="noise" aria-hidden="true"></div>
 
@@ -2602,6 +2697,8 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       <button class="nav-link nav-chat" data-view="chat">
         <span class="nav-label" data-i18n="nav_chat">Чат</span><span class="nav-beta">BETA</span>
       </button>
+      <!-- Temporarily hidden; image generation remains available in the source. -->
+      <button class="nav-link" data-view="images" hidden><span class="nav-label" data-i18n="nav_images">Фото</span></button>
       <button class="nav-link" data-view="models">
         <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">36</span>
       </button>
@@ -2707,6 +2804,24 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
             <p class="chat-composer-note" id="chatComposerNote" data-i18n="chat_note">Enter — отправить · Shift+Enter — новая строка · до 4 файлов</p>
           </div>
         </div>
+      </div>
+    </section>
+
+    <section class="view" id="imagesView">
+      <div class="page-head"><div><span class="eyebrow">IMAGE STUDIO</span><h1 data-i18n="images_title">От идеи — к изображению</h1><p data-i18n="images_intro">Опишите сюжет, стиль и детали. ИИ создаст картинку по вашему описанию.</p></div></div>
+      <div class="image-studio">
+        <form id="imageForm" class="image-settings">
+          <label for="imagePrompt" data-i18n="images_prompt">Что нарисовать?</label>
+          <textarea id="imagePrompt" rows="6" maxlength="4000" required data-i18n-placeholder="images_placeholder" placeholder="Например: уютный дом у озера, утренний туман, мягкий свет, фотореализм"></textarea>
+          <label for="imageModel" data-i18n="chat_model">Модель</label>
+          <select id="imageModel"><option value="gpt-image-2">GPT Image 2</option><option value="nano-banana-2">Nano Banana 2</option><option value="grok-imagine-image">Grok Imagine</option></select>
+          <div class="image-options"><div><label for="imageQuality" data-i18n="images_quality">Качество</label><select id="imageQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div><div><label for="imageCount" data-i18n="images_count">Количество</label><select id="imageCount"><option value="1">1</option><option value="2">2</option><option value="4">4</option></select></div></div>
+          <p class="image-hint" data-i18n="images_size">1024 × 1024 · PNG, JPEG или WebP</p>
+          <button class="primary-button" id="imageGenerate" type="submit"></button>
+          <p class="image-hint" id="imagePriceNote"></p>
+          <p class="image-hint" data-i18n="images_session">Результаты доступны в этой вкладке до обновления страницы. Скачайте нужные изображения.</p>
+        </form>
+        <div class="image-output"><div id="imageNotice" role="status" aria-live="polite"></div><div id="imageResults" class="image-results"></div></div>
       </div>
     </section>
 
@@ -5533,6 +5648,7 @@ function liveModelCoefficient(model) {
 }
 
 function isTextModel(model) {
+  if (['gpt-image-2','nano-banana-2','grok-imagine-image'].includes(String(model?.id || '').toLowerCase())) return false;
   const id = String(model?.id || '').trim().toLowerCase();
   if (!/^[a-z0-9][a-z0-9._:-]*$/i.test(id)) return false;
   if (/^(?:gpt-image|image-|dall-e|sora-|tts-|whisper-|audio-|video-)/.test(id) || id.endsWith('-cursor')) return false;
@@ -5638,6 +5754,10 @@ async function loadModelsFromAPI({ timeoutMs = MODELS_TIMEOUT_MS } = {}) {
       });
 
       if (requestId === modelsRequestId && loadedModels.length > 0) {
+        // A text-model catalog may omit image endpoints entirely; absence is
+        // not proof that the key cannot generate images. The image API decides.
+        imageState.available = null;
+        renderImageControls();
         models = loadedModels;
         state.modelsUpdatedAt = Date.now();
         console.log(`✓ Загружено ${models.length} моделей с API`);
@@ -6312,6 +6432,7 @@ function stopUsageAutoUpdate(resetState = true) {
 // === LANGUAGE & RENDERING ===
 function applyLanguage() {
   document.documentElement.lang = state.language;
+  window.backgroundVideo?.render();
   document.title = t('title');
   $$('[data-i18n]').forEach(element => { element.textContent = t(element.dataset.i18n); });
   $$('[data-i18n-html]').forEach(element => { element.innerHTML = t(element.dataset.i18nHtml); });
@@ -6335,6 +6456,7 @@ function applyLanguage() {
   renderUsage();
   renderChat();
   renderServiceStatus();
+  renderImageControls();
   if (state.activeApp) renderGuide();
 }
 
@@ -7018,6 +7140,107 @@ function enterApp(os) {
   }));
 }
 
+// === IMAGE GENERATION ===
+const IMAGE_MODELS = {
+  'gpt-image-2': { name:'GPT Image 2', prices:{ low:50000, medium:100000, high:150000 } },
+  'nano-banana-2': { name:'Nano Banana 2', prices:{ low:100000 } },
+  'grok-imagine-image': { name:'Grok Imagine', prices:{ low:100000, medium:250000, high:350000 } }
+};
+const imageState = { busy:false, epoch:0, controller:null, results:[], available:null, notice:'images_empty', error:false };
+Object.assign(i18n.ru, {
+  nav_images:'Фото', images_title:'От идеи — к изображению', images_intro:'Опишите сюжет, стиль и детали. ИИ создаст картинку по вашему описанию.',
+  images_prompt:'Что нарисовать?', images_placeholder:'Например: уютный дом у озера, утренний туман, мягкий свет, фотореализм', images_quality:'Качество', images_count:'Количество', images_size:'1024 × 1024 · PNG, JPEG или WebP',
+  images_session:'Результаты доступны в этой вкладке до обновления страницы. Скачайте нужные изображения.', images_generate:'Создать', images_working:'Создаём изображения…', images_price:'Цена по тарифу: {price} токенов за изображение × {count}.', images_empty:'Здесь появятся ваши изображения.', images_wait:'Генерация может занять несколько минут. Не обновляйте страницу. Повторно отправлять запрос не нужно.', images_done:'Изображения готовы. Скачайте их перед обновлением страницы.', images_download:'Скачать', images_prompt_required:'Опишите изображение.', images_unavailable:'Эта модель недоступна для введённого ключа.', images_unknown:'Не удалось получить результат. Запрос мог быть принят и токены могли списаться. Проверьте баланс и историю перед повторной генерацией. При проблемах с соединением попробуйте VPN.', images_rejected:'Сервис отклонил запрос. Проверьте описание и доступ к модели.', images_funds:'Недостаточно токенов для выбранных настроек.', images_config:'Сервис изображений ещё не настроен. Попробуйте позже.'
+});
+Object.assign(i18n.en, {
+  nav_images:'Images', images_title:'From an idea to an image', images_intro:'Describe the subject, style and details. AI will create an image from your prompt.',
+  images_prompt:'What should we draw?', images_placeholder:'For example: a cozy lakeside house, morning mist, soft light, photorealistic', images_quality:'Quality', images_count:'Quantity', images_size:'1024 × 1024 · PNG, JPEG or WebP',
+  images_session:'Results stay in this tab until you refresh. Download the images you want to keep.', images_generate:'Create', images_working:'Creating images…', images_price:'Listed price: {price} tokens per image × {count}.', images_empty:'Your images will appear here.', images_wait:'Generation can take a few minutes. Keep this page open. There is no need to submit again.', images_done:'Your images are ready. Download them before refreshing.', images_download:'Download', images_prompt_required:'Describe the image.', images_unavailable:'This model is unavailable for your API key.', images_unknown:'The result could not be retrieved. The request may have been accepted and charged. Check your balance and history before generating again. Try a VPN if you have connection issues.', images_rejected:'The service rejected the request. Check your prompt and model access.', images_funds:'Not enough tokens for these settings.', images_config:'The image service is not configured yet. Please try later.'
+});
+function renderImageControls() {
+  const select = $('#imageModel');
+  if (!select) return;
+  for (const option of select.options) option.disabled = imageState.available !== null && !imageState.available.includes(option.value);
+  if (select.selectedOptions[0]?.disabled) select.value = [...select.options].find(option => !option.disabled)?.value || '';
+  const spec = IMAGE_MODELS[select.value];
+  const quality = $('#imageQuality'), previous = quality.value;
+  quality.innerHTML = Object.keys(spec?.prices || {}).map(q => `<option value="${q}">${q[0].toUpperCase()+q.slice(1)}</option>`).join('');
+  if (Object.hasOwn(spec?.prices || {}, previous)) quality.value = previous;
+  const price = spec?.prices[quality.value] || 0, count = Number($('#imageCount').value);
+  $('#imageGenerate').textContent = imageState.busy ? t('images_working') : `${t('images_generate')} · ${formatUsageNumber(price * count)} ${t('tokens')}`;
+  $('#imageGenerate').disabled = imageState.busy || !spec;
+  $('#imagePriceNote').textContent = t('images_price').replace('{price}',formatUsageNumber(price)).replace('{count}',count);
+  for (const control of $('#imageForm').querySelectorAll('select,textarea')) control.disabled = imageState.busy;
+  $('#imageForm').setAttribute('aria-busy',String(imageState.busy));
+  const notice = $('#imageNotice');
+  notice.className = 'image-notice' + (imageState.error ? ' is-error' : '');
+  notice.textContent = t(imageState.notice);
+  for (const link of $('#imageResults').querySelectorAll('a')) link.textContent = t('images_download');
+}
+function resetImages() {
+  imageState.epoch += 1;
+  imageState.controller?.abort();
+  imageState.controller = null;
+  imageState.busy = false;
+  for (const item of imageState.results) URL.revokeObjectURL(item.url);
+  imageState.results = [];
+  imageState.available = null;
+  imageState.notice = 'images_empty'; imageState.error = false;
+  $('#imageResults').replaceChildren();
+  $('#imagePrompt').value = '';
+  renderImageControls();
+}
+function imageBlob(encoded) {
+  if (typeof encoded !== 'string' || !encoded || encoded.length > 40000000) throw new Error('Invalid image');
+  const binary = atob(encoded), bytes = Uint8Array.from(binary, c => c.charCodeAt(0));
+  const mime = bytes[0] === 137 && bytes[1] === 80 && bytes[2] === 78 && bytes[3] === 71 ? 'image/png' : bytes[0] === 255 && bytes[1] === 216 ? 'image/jpeg' : binary.startsWith('RIFF') && binary.slice(8,12) === 'WEBP' ? 'image/webp' : '';
+  if (!mime) throw new Error('Unsupported image');
+  return new Blob([bytes], { type:mime });
+}
+async function generateImages(event) {
+  event.preventDefault();
+  if (imageState.busy) return;
+  const apiKey = state.apiKey.trim(), model = $('#imageModel').value, quality = $('#imageQuality').value, n = Number($('#imageCount').value), prompt = $('#imagePrompt').value.trim();
+  let errorKey = !apiKey ? 'chat_no_key' : !prompt ? 'images_prompt_required' : !Object.hasOwn(IMAGE_MODELS,model) || (imageState.available !== null && !imageState.available.includes(model)) ? 'images_unavailable' : '';
+  if (!errorKey && (prompt.length > 4000 || ![1,2,4].includes(n) || !Object.hasOwn(IMAGE_MODELS[model].prices,quality))) errorKey = 'images_rejected';
+  if (!errorKey && state.balance.status === 'success' && Number(state.balance.value) < IMAGE_MODELS[model].prices[quality] * n) errorKey = 'images_funds';
+  if (errorKey) { imageState.notice=errorKey; imageState.error=true; renderImageControls(); return; }
+  const epoch = imageState.epoch, controller = new AbortController();
+  imageState.busy=true; imageState.controller=controller; imageState.notice='images_wait'; imageState.error=false; renderImageControls();
+  const timeout = setTimeout(() => controller.abort(), 240000);
+  const pending = [];
+  try {
+    const response = await fetch(CHAT_API_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'images',api_key:apiKey,payload:{model,prompt,quality,n,size:'1024x1024',response_format:'b64_json'}}), signal:controller.signal });
+    if (!response.ok) {
+      let body; try { body=await response.json(); } catch {}
+      const key = body?.error?.code === 'unsupported_action' ? 'images_config' : response.status===401 ? 'chat_error_401' : response.status===402 ? 'images_funds' : response.status===429 ? 'chat_error_429' : response.status===400 || response.status===403 ? 'images_rejected' : 'images_unknown';
+      throw Object.assign(new Error(key), { displayKey:key });
+    }
+    const body = await response.json();
+    if (!Array.isArray(body.data) || !body.data.length || body.data.length > n) throw new Error('Invalid result');
+    for (const entry of body.data) { const blob = imageBlob(entry.b64_json); pending.push({url:URL.createObjectURL(blob), extension:blob.type.split('/')[1]}); }
+    if (epoch !== imageState.epoch || apiKey !== state.apiKey.trim()) { for(const item of pending) URL.revokeObjectURL(item.url); return; }
+    const fragment = document.createDocumentFragment();
+    for (const [i,item] of pending.entries()) {
+      const figure=document.createElement('figure'), img=document.createElement('img'), link=document.createElement('a'), caption=document.createElement('figcaption');
+      img.src=item.url; img.alt=prompt; img.loading='lazy'; link.href=item.url; link.download=`prompt-port-${Date.now()}-${i+1}.${item.extension}`; link.textContent=t('images_download'); caption.textContent=IMAGE_MODELS[model].name+' · '+quality;
+      figure.append(img,link,caption); fragment.append(figure);
+    }
+    $('#imageResults').replaceChildren(fragment);
+    for(const item of imageState.results) URL.revokeObjectURL(item.url);
+    imageState.results=pending; imageState.notice='images_done';
+  } catch (error) {
+    for(const item of pending) URL.revokeObjectURL(item.url);
+    if(epoch === imageState.epoch) { imageState.notice=error.displayKey || 'images_unknown'; imageState.error=true; }
+  } finally {
+    clearTimeout(timeout);
+    if(epoch === imageState.epoch) {
+      imageState.busy=false; imageState.controller=null; renderImageControls();
+      if(apiKey === state.apiKey.trim()) { refreshBalance(true,true); refreshUsage(true); }
+    }
+  }
+}
+
 // === INIT ===
 async function init() {
   // Initialize loading torus animation
@@ -7092,6 +7315,9 @@ async function init() {
   applyLanguage();
   showKeyStage();
 
+  $('#imageForm').addEventListener('submit', generateImages);
+  for (const id of ['imageModel','imageQuality','imageCount']) $('#'+id).addEventListener('change', renderImageControls);
+
   $$('[data-lang]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.lang === state.language) return;
     state.language = button.dataset.lang;
@@ -7105,6 +7331,7 @@ async function init() {
     if (value.length < 8) { $('#keyError').textContent = t('key_short'); $('.key-control').classList.add('is-error'); return; }
     $('#keyError').textContent = '';
     $('.key-control').classList.remove('is-error');
+    if (state.apiKey !== value) resetImages();
     state.apiKey = value;
     const submitButton = $('#keyForm .primary-button');
     const submitLabel = $('span', submitButton);
@@ -7146,6 +7373,7 @@ async function init() {
   });
 
   $('#skipKey').addEventListener('click', () => {
+    resetImages();
     stopBalanceAutoUpdate();
     stopUsageAutoUpdate();
     stopModelsAutoUpdate();
@@ -7341,7 +7569,7 @@ const hidePageLoader = () => {
 };
 const heroVideo = document.querySelector('.hero-video');
 const revealAfterVideo = () => setTimeout(hidePageLoader, 300);
-if (heroVideo?.readyState >= 2) revealAfterVideo();
+if (!window.backgroundVideo?.enabled || heroVideo?.readyState >= 2) revealAfterVideo();
 else heroVideo?.addEventListener('loadeddata', revealAfterVideo, { once: true });
 window.addEventListener('load', () => {
   if (heroVideo?.readyState >= 2) revealAfterVideo();
