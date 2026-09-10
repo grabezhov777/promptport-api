@@ -5020,22 +5020,23 @@ PROMPT_PORT_NODE
 chmod 600 "$SETTINGS"
 printf '%s\n' 'Claude Code configured.' "Backup: $BACKUP"`;
 
-  if (clientId === 'claude-app' && os === 'mac') return shellCommand`set -euo pipefail
+  if (clientId === 'claude-app' && os === 'mac') return shellCommand`/bin/bash <<'PROMPT_PORT_CLAUDE_APP'
+set -euo pipefail
 API_KEY='${key}'
 BASE_URL='https://ru.cheapvibecode.ru'
 DIR="$HOME/Library/Application Support/Claude-3p"
 SETTINGS="$DIR/claude_desktop_config.json"
 LIBRARY="$DIR/configLibrary"
 META="$LIBRARY/_meta.json"
-BACKUP="$DIR/backups/prompt-port-claude-app-$(date +%Y%m%d-%H%M%S)"
+BACKUP="$DIR/backups/prompt-port-claude-app-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$DIR" "$LIBRARY" "$BACKUP"
 [ ! -f "$SETTINGS" ] || cp "$SETTINGS" "$BACKUP/claude_desktop_config.json"
 [ ! -f "$META" ] || cp "$META" "$BACKUP/configLibrary-meta.json"
 ensure_object() {
-  local path="$1" first=''
-  if [ ! -f "$path" ]; then printf '{"__prompt_port_seed__":true}\n' > "$path"; return; fi
-  first=$(/usr/bin/plutil -p "$path" 2>/dev/null | head -c 1 || true)
-  if ! /usr/bin/plutil -convert json -o /dev/null "$path" >/dev/null 2>&1 || [ "$first" != '{' ]; then printf '%s\n' "Claude App config is invalid: $path. Backup: $BACKUP" >&2; exit 1; fi
+  local config_file="$1" object_description=''
+  if [ ! -f "$config_file" ]; then printf '{"__prompt_port_seed__":true}\n' > "$config_file"; return; fi
+  object_description=$(/usr/bin/plutil -p "$config_file" 2>/dev/null || true)
+  if ! /usr/bin/plutil -convert json -o /dev/null "$config_file" >/dev/null 2>&1 || [[ "$object_description" != \{* ]]; then printf '%s\n' "Claude App config is invalid: $config_file. Backup: $BACKUP" >&2; exit 1; fi
 }
 put_string() {
   if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -string "$3" "$1"; else /usr/bin/plutil -insert "$2" -string "$3" "$1"; fi
@@ -5047,17 +5048,17 @@ put_json() {
   if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -json "$3" "$1"; else /usr/bin/plutil -insert "$2" -json "$3" "$1"; fi
 }
 set_gateway() {
-  local path="$1" prefix="\${2:-}"
-  put_string "$path" "\${prefix}inferenceProvider" 'gateway'
-  put_string "$path" "\${prefix}inferenceGatewayBaseUrl" "$BASE_URL"
-  put_string "$path" "\${prefix}inferenceGatewayApiKey" "$API_KEY"
-  put_string "$path" "\${prefix}inferenceGatewayAuthScheme" 'bearer'
-  put_bool "$path" "\${prefix}modelDiscoveryEnabled" true
-  put_json "$path" "\${prefix}coworkEgressAllowedHosts" '["*"]'
-  /usr/bin/plutil -remove "\${prefix}inferenceGatewayHeaders" "$path" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove "\${prefix}inferenceCustomHeaders" "$path" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove "\${prefix}inferenceModels" "$path" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove '__prompt_port_seed__' "$path" >/dev/null 2>&1 || true
+  local config_file="$1" prefix="\${2:-}"
+  put_string "$config_file" "\${prefix}inferenceProvider" 'gateway'
+  put_string "$config_file" "\${prefix}inferenceGatewayBaseUrl" "$BASE_URL"
+  put_string "$config_file" "\${prefix}inferenceGatewayApiKey" "$API_KEY"
+  put_string "$config_file" "\${prefix}inferenceGatewayAuthScheme" 'bearer'
+  put_bool "$config_file" "\${prefix}modelDiscoveryEnabled" true
+  put_json "$config_file" "\${prefix}coworkEgressAllowedHosts" '["*"]'
+  /usr/bin/plutil -remove "\${prefix}inferenceGatewayHeaders" "$config_file" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove "\${prefix}inferenceCustomHeaders" "$config_file" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove "\${prefix}inferenceModels" "$config_file" >/dev/null 2>&1 || true
+  /usr/bin/plutil -remove '__prompt_port_seed__' "$config_file" >/dev/null 2>&1 || true
 }
 ensure_object "$SETTINGS"
 put_string "$SETTINGS" deploymentMode 3p
@@ -5070,7 +5071,7 @@ GUID=$(/usr/bin/plutil -extract appliedId raw -n "$META" 2>/dev/null || true)
 if ! printf '%s' "$GUID" | grep -Eq '^[a-fA-F0-9-]{36}$'; then GUID=$(/usr/bin/uuidgen | tr '[:upper:]' '[:lower:]'); fi
 ensure_object "$META"
 put_string "$META" appliedId "$GUID"
-if ! /usr/bin/plutil -extract entries raw -expect array "$META" >/dev/null 2>&1; then put_json "$META" entries "[{\\\"id\\\":\\\"$GUID\\\",\\\"name\\\":\\\"CheapVibeCode\\\"}]"; fi
+if ! /usr/bin/plutil -extract entries raw -expect array "$META" >/dev/null 2>&1; then put_json "$META" entries "[{\"id\":\"$GUID\",\"name\":\"CheapVibeCode\"}]"; fi
 /usr/bin/plutil -remove '__prompt_port_seed__' "$META" >/dev/null 2>&1 || true
 PROFILE="$LIBRARY/$GUID.json"
 [ ! -f "$PROFILE" ] || cp "$PROFILE" "$BACKUP/active-profile.json"
@@ -5080,7 +5081,8 @@ chmod 600 "$SETTINGS" "$META" "$PROFILE"
 osascript -e 'tell application "Claude" to quit' >/dev/null 2>&1 || true
 sleep 1
 open -a 'Claude' || true
-printf '%s\n' 'Claude App configured.' "Backup: $BACKUP"`;
+printf '%s\n' 'Claude App configured.' "Backup: $BACKUP"
+PROMPT_PORT_CLAUDE_APP`;
 
   if (clientId === 'hermes') {
     const yamlModels = Object.keys(models).map(id => `      "${id}": {}`).join('\n');
