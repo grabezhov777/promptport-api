@@ -2498,6 +2498,18 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
 .image-results img { display:block; width:100%; aspect-ratio:1; object-fit:contain; border-radius:18px; background:rgba(0,0,0,.18); }
 .image-results a { display:inline-block; color:#b9f1cd; padding:12px 0; font-size:12px; }
 .image-results figcaption { font-size:11px; color:#b7c9bd; overflow-wrap:anywhere; }
+.image-preview { display:block; max-height:150px; max-width:100%; margin-top:12px; border-radius:14px; object-fit:contain; }
+.image-preview[hidden],#imageUpload[hidden] { display:none; }
+.image-settings input[type=file] { width:100%; font:inherit; font-size:12px; color:#e2f3e8; margin-bottom:8px; }
+.image-settings input::file-selector-button { background:#20362a; color:#effff4; border:0; border-radius:10px; padding:10px; cursor:pointer; }
+.image-powershell { margin-top:24px; padding-top:20px; box-shadow:0 -1px rgba(159,224,183,.18); min-width:0; }
+.image-powershell summary { color:#dbf7e5; cursor:pointer; font-size:15px; padding:8px 0; }
+.image-powershell .image-hint { margin:12px 0; }
+.image-powershell label { display:block; margin:14px 0 8px; font-size:12px; }
+.image-powershell select { max-width:100%; background:#20362a; color:#effff4; padding:10px; border-radius:10px; }
+.image-powershell pre { max-height:320px; overflow:auto; padding:18px; border-radius:14px; background:rgba(0,0,0,.3); font-size:11px; line-height:1.7; white-space:pre; }
+.image-powershell .primary-button { padding:12px 20px; font-size:12px; }
+.image-disabled-note { margin:0; padding:12px 14px; border-radius:12px; color:#ffe4a3; background:rgba(198,143,38,.14); box-shadow:inset 0 0 0 1px rgba(255,211,111,.3); font-size:11px; line-height:1.6; }
 .main-nav .nav-link[hidden] { display:none !important; }
 @media(max-width:900px) { .image-studio { grid-template-columns:1fr; gap:16px; } .image-settings,.image-output { padding:20px; } .image-output { min-height:220px; } .main-nav { grid-template-columns:repeat(5,minmax(0,1fr)); } }
 @media(max-width:380px) { .image-results { grid-template-columns:1fr; } .main-nav .nav-link { font-size:8px; padding-inline:2px; } }
@@ -2698,7 +2710,7 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
         <span class="nav-label" data-i18n="nav_chat">Чат</span><span class="nav-beta">BETA</span>
       </button>
       <!-- Temporarily hidden; image generation remains available in the source. -->
-      <button class="nav-link" data-view="images" hidden><span class="nav-label" data-i18n="nav_images">Фото</span></button>
+      <button class="nav-link" data-view="images"><span class="nav-label" data-i18n="nav_images">Фото</span></button>
       <button class="nav-link" data-view="models">
         <span class="nav-label" data-i18n="nav_models">Модели</span> <span id="modelCount">36</span>
       </button>
@@ -2811,17 +2823,23 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
       <div class="page-head"><div><span class="eyebrow">IMAGE STUDIO</span><h1 data-i18n="images_title">От идеи — к изображению</h1><p data-i18n="images_intro">Опишите сюжет, стиль и детали. ИИ создаст картинку по вашему описанию.</p></div></div>
       <div class="image-studio">
         <form id="imageForm" class="image-settings">
+          <label for="imageMode" data-i18n="images_mode">Режим</label>
+          <select id="imageMode"><option value="generate" data-i18n="images_mode_generate">Создать изображение</option><option value="edit" data-i18n="images_mode_edit">Изменить фото</option></select>
+          <div id="imageUpload" hidden><label for="imageFile" data-i18n="images_file">Исходное фото</label><input id="imageFile" type="file" accept="image/png,image/jpeg,image/webp"><p class="image-hint" data-i18n="images_file_hint">PNG, JPEG или WebP, до 10 МБ. Фото отправится только при нажатии «Создать».</p><img id="imagePreview" class="image-preview" alt="" hidden></div>
           <label for="imagePrompt" data-i18n="images_prompt">Что нарисовать?</label>
           <textarea id="imagePrompt" rows="6" maxlength="4000" required data-i18n-placeholder="images_placeholder" placeholder="Например: уютный дом у озера, утренний туман, мягкий свет, фотореализм"></textarea>
           <label for="imageModel" data-i18n="chat_model">Модель</label>
-          <select id="imageModel"><option value="gpt-image-2">GPT Image 2</option><option value="nano-banana-2">Nano Banana 2</option><option value="grok-imagine-image">Grok Imagine</option></select>
+          <select id="imageModel"><option value="gpt-image-2.5-flare">GPT Image 2.5 Flare</option><option value="nano-banana-2">Nano Banana 2</option></select>
           <div class="image-options"><div><label for="imageQuality" data-i18n="images_quality">Качество</label><select id="imageQuality"><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option></select></div><div><label for="imageCount" data-i18n="images_count">Количество</label><select id="imageCount"><option value="1">1</option><option value="2">2</option><option value="4">4</option></select></div></div>
-          <p class="image-hint" data-i18n="images_size">1024 × 1024 · PNG, JPEG или WebP</p>
+          <label for="imageSize" data-i18n="images_size">Размер</label><select id="imageSize"><option value="1024x1024">1024 × 1024</option><option value="1536x1024">1536 × 1024</option></select>
           <button class="primary-button" id="imageGenerate" type="submit"></button>
+          <p class="image-disabled-note" data-i18n="images_disabled">Генерация через сайт временно отключена. Используйте PowerShell-команду ниже — она доступна.</p>
           <p class="image-hint" id="imagePriceNote"></p>
           <p class="image-hint" data-i18n="images_session">Результаты доступны в этой вкладке до обновления страницы. Скачайте нужные изображения.</p>
         </form>
-        <div class="image-output"><div id="imageNotice" role="status" aria-live="polite"></div><div id="imageResults" class="image-results"></div></div>
+        <div class="image-output"><div id="imageNotice" role="status" aria-live="polite"></div><div id="imageResults" class="image-results"></div>
+          <details class="image-powershell"><summary data-i18n="images_ps_title">Через PowerShell</summary><p class="image-hint" data-i18n="images_ps_hint">Команда использует выбранные модель, качество, размер и описание. Вставьте её целиком в PowerShell 5.1 или 7+. Ключ вводится отдельно, скрытым вводом; изображения сохраняются в папку «Изображения» → Prompt Port. Сайт и команда — два отдельных платных запроса, запускайте только один вариант.</p><label for="imagePSApi" data-i18n="images_ps_api">Способ запроса</label><select id="imagePSApi"><option value="images">Images API</option><option value="responses">Responses API</option></select><pre><code id="imagePSCode"></code></pre><button type="button" class="primary-button" id="imagePSCopy" data-i18n="images_ps_copy">Скопировать команду</button><p id="imagePSNotice" class="image-hint" role="status"></p></details>
+        </div>
       </div>
     </section>
 
@@ -4306,7 +4324,7 @@ const state = {
 safeStorage.removeItem('cerberus_api_key');
 const BALANCE_API_ENDPOINT = 'https://api-token.alexgamer7307.workers.dev?v=3';
 const MODELS_PROXY_ENDPOINT = 'https://prompt-port-models.alexgamer7307.workers.dev?v=1';
-const CHAT_API_ENDPOINT = 'https://prompt-port-chat.alexgamer7307.workers.dev?v=2';
+const CHAT_API_ENDPOINT = 'https://prompt-port-chat.alexgamer7307.workers.dev?v=3';
 const BALANCE_ATTEMPT_TIMEOUT_MS = 8000;
 const MODELS_TIMEOUT_MS = 12000;
 const MODELS_INITIAL_TIMEOUT_MS = 6000;
@@ -5025,60 +5043,86 @@ set -euo pipefail
 API_KEY='${key}'
 BASE_URL='https://ru.cheapvibecode.ru'
 DIR="$HOME/Library/Application Support/Claude-3p"
+umask 077
 SETTINGS="$DIR/claude_desktop_config.json"
 LIBRARY="$DIR/configLibrary"
 META="$LIBRARY/_meta.json"
 BACKUP="$DIR/backups/prompt-port-claude-app-$(date +%Y%m%d-%H%M%S)-$$"
 mkdir -p "$DIR" "$LIBRARY" "$BACKUP"
+/usr/bin/osascript -e 'if application "Claude" is running then tell application "Claude" to quit'
 [ ! -f "$SETTINGS" ] || cp "$SETTINGS" "$BACKUP/claude_desktop_config.json"
 [ ! -f "$META" ] || cp "$META" "$BACKUP/configLibrary-meta.json"
-ensure_object() {
-  local config_file="$1" object_description=''
-  if [ ! -f "$config_file" ]; then printf '{"__prompt_port_seed__":true}\n' > "$config_file"; return; fi
-  object_description=$(/usr/bin/plutil -p "$config_file" 2>/dev/null || true)
-  if ! /usr/bin/plutil -convert json -o /dev/null "$config_file" >/dev/null 2>&1 || [[ "$object_description" != \{* ]]; then printf '%s\n' "Claude App config is invalid: $config_file. Backup: $BACKUP" >&2; exit 1; fi
+export PROMPT_PORT_APP_DIR="$DIR" PROMPT_PORT_APP_BACKUP="$BACKUP"
+export PROMPT_PORT_APP_KEY="$API_KEY" PROMPT_PORT_APP_URL="$BASE_URL"
+/usr/bin/osascript -l JavaScript <<'PROMPT_PORT_APP_JSON'
+ObjC.import('Foundation');
+function run() {
+  var fm = $.NSFileManager.defaultManager;
+  function env(name) { return ObjC.unwrap($.NSProcessInfo.processInfo.environment.objectForKey(name)); }
+  var dir = env('PROMPT_PORT_APP_DIR'), backup = env('PROMPT_PORT_APP_BACKUP');
+  function object(value) { return value !== null && typeof value === 'object' && !Array.isArray(value); }
+  function read(path) {
+    if (!fm.fileExistsAtPath(path)) return {};
+    var text = $.NSString.stringWithContentsOfFileEncodingError(path, $.NSUTF8StringEncoding, null);
+    if (!text) throw new Error('Cannot read config: ' + path + '. Backup: ' + backup);
+    var raw = ObjC.unwrap(text).replace(/^\uFEFF/, '');
+    if (!raw.trim()) return {};
+    var value;
+    try { value = JSON.parse(raw); }
+    catch (_) { throw new Error('Invalid JSON in: ' + path + '. No settings replaced. Backup: ' + backup); }
+    if (!object(value)) throw new Error('Config must be a JSON object: ' + path + '. Backup: ' + backup);
+    return value;
+  }
+  function gateway(value) {
+    value.inferenceProvider = 'gateway';
+    value.inferenceGatewayBaseUrl = env('PROMPT_PORT_APP_URL');
+    value.inferenceGatewayApiKey = env('PROMPT_PORT_APP_KEY');
+    value.inferenceGatewayAuthScheme = 'bearer';
+    value.modelDiscoveryEnabled = true;
+    value.coworkEgressAllowedHosts = ['*'];
+    delete value.inferenceGatewayHeaders;
+    delete value.inferenceCustomHeaders;
+    delete value.inferenceModels;
+    delete value.__prompt_port_seed__;
+  }
+  var settingsPath = dir + '/claude_desktop_config.json';
+  var metaPath = dir + '/configLibrary/_meta.json';
+  // Validate every existing file before replacing any settings.
+  var settings = read(settingsPath), meta = read(metaPath);
+  var guid = meta.appliedId;
+  if (typeof guid !== 'string' || !/^[a-fA-F0-9]{8}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{4}-[a-fA-F0-9]{12}$/.test(guid)) {
+    guid = ObjC.unwrap($.NSUUID.UUID.UUIDString).toLowerCase();
+  }
+  var profilePath = dir + '/configLibrary/' + guid + '.json';
+  var profile = read(profilePath);
+  if (fm.fileExistsAtPath(profilePath) && !fm.copyItemAtPathToPathError(profilePath, backup + '/active-profile.json', null)) {
+    throw new Error('Could not back up active profile; settings unchanged.');
+  }
+  settings.deploymentMode = '3p';
+  if (!object(settings.enterpriseConfig)) settings.enterpriseConfig = {};
+  gateway(settings.enterpriseConfig);
+  delete settings.__prompt_port_seed__;
+  gateway(profile);
+  meta.appliedId = guid;
+  if (!Array.isArray(meta.entries)) meta.entries = [];
+  if (!meta.entries.some(function(entry) { return object(entry) && entry.id === guid; })) {
+    meta.entries.push({id: guid, name: 'CheapVibeCode'});
+  }
+  delete meta.__prompt_port_seed__;
+  function write(path, value) {
+    if (!$(JSON.stringify(value, null, 2) + '\n').writeToFileAtomicallyEncodingError(path, true, $.NSUTF8StringEncoding, null)) {
+      throw new Error('Could not save: ' + path + '. Backup: ' + backup);
+    }
+    if (!fm.setAttributesOfItemAtPathError($({NSFilePosixPermissions: 384}), path, null)) {
+      throw new Error('Could not secure config permissions: ' + path);
+    }
+  }
+  write(profilePath, profile);
+  write(metaPath, meta);
+  write(settingsPath, settings);
 }
-put_string() {
-  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -string "$3" "$1"; else /usr/bin/plutil -insert "$2" -string "$3" "$1"; fi
-}
-put_bool() {
-  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -bool "$3" "$1"; else /usr/bin/plutil -insert "$2" -bool "$3" "$1"; fi
-}
-put_json() {
-  if /usr/bin/plutil -type "$2" "$1" >/dev/null 2>&1; then /usr/bin/plutil -replace "$2" -json "$3" "$1"; else /usr/bin/plutil -insert "$2" -json "$3" "$1"; fi
-}
-set_gateway() {
-  local config_file="$1" prefix="\${2:-}"
-  put_string "$config_file" "\${prefix}inferenceProvider" 'gateway'
-  put_string "$config_file" "\${prefix}inferenceGatewayBaseUrl" "$BASE_URL"
-  put_string "$config_file" "\${prefix}inferenceGatewayApiKey" "$API_KEY"
-  put_string "$config_file" "\${prefix}inferenceGatewayAuthScheme" 'bearer'
-  put_bool "$config_file" "\${prefix}modelDiscoveryEnabled" true
-  put_json "$config_file" "\${prefix}coworkEgressAllowedHosts" '["*"]'
-  /usr/bin/plutil -remove "\${prefix}inferenceGatewayHeaders" "$config_file" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove "\${prefix}inferenceCustomHeaders" "$config_file" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove "\${prefix}inferenceModels" "$config_file" >/dev/null 2>&1 || true
-  /usr/bin/plutil -remove '__prompt_port_seed__' "$config_file" >/dev/null 2>&1 || true
-}
-ensure_object "$SETTINGS"
-put_string "$SETTINGS" deploymentMode 3p
-if ! /usr/bin/plutil -extract enterpriseConfig raw -expect dictionary "$SETTINGS" >/dev/null 2>&1; then
-  /usr/bin/plutil -remove enterpriseConfig "$SETTINGS" >/dev/null 2>&1 || true
-  /usr/bin/plutil -insert enterpriseConfig -dictionary "$SETTINGS"
-fi
-set_gateway "$SETTINGS" 'enterpriseConfig.'
-GUID=$(/usr/bin/plutil -extract appliedId raw -n "$META" 2>/dev/null || true)
-if ! printf '%s' "$GUID" | grep -Eq '^[a-fA-F0-9-]{36}$'; then GUID=$(/usr/bin/uuidgen | tr '[:upper:]' '[:lower:]'); fi
-ensure_object "$META"
-put_string "$META" appliedId "$GUID"
-if ! /usr/bin/plutil -extract entries raw -expect array "$META" >/dev/null 2>&1; then put_json "$META" entries "[{\"id\":\"$GUID\",\"name\":\"CheapVibeCode\"}]"; fi
-/usr/bin/plutil -remove '__prompt_port_seed__' "$META" >/dev/null 2>&1 || true
-PROFILE="$LIBRARY/$GUID.json"
-[ ! -f "$PROFILE" ] || cp "$PROFILE" "$BACKUP/active-profile.json"
-ensure_object "$PROFILE"
-set_gateway "$PROFILE"
-chmod 600 "$SETTINGS" "$META" "$PROFILE"
-osascript -e 'tell application "Claude" to quit' >/dev/null 2>&1 || true
+PROMPT_PORT_APP_JSON
+unset PROMPT_PORT_APP_KEY
 sleep 1
 open -a 'Claude' || true
 printf '%s\n' 'Claude App configured.' "Backup: $BACKUP"
@@ -5289,6 +5333,64 @@ printf '%s\n' 'Cursor configured with ${cursorSpecs.length} models.' "Backup: $B
   }
 
   if (clientId === 'codex-vscode' || clientId === 'codex-app' || clientId === 'codex-cli') {
+    if (os === 'mac') return shellCommand`/bin/bash <<'PROMPT_PORT_CODEX_MAC'
+set -euo pipefail
+umask 077
+API_KEY='${key}'
+DIR="\${CODEX_HOME:-$HOME/.codex}"
+mkdir -p "$DIR/backups"
+BACKUP=$(mktemp -d "$DIR/backups/prompt-port-${clientId}-XXXXXX")
+CONFIG="$DIR/config.toml"
+[ ! -f "$CONFIG" ] || cp -p "$CONFIG" "$BACKUP/config.toml"
+KEPT="$BACKUP/config-kept.toml"
+NEXT="$BACKUP/config-next.toml"
+INPUT=/dev/null
+[ ! -f "$CONFIG" ] || INPUT="$CONFIG"
+# Only merge the ordinary, single-line TOML used by the installer. Stop
+# without changing settings when a complex form needs a full TOML parser.
+awk '
+BEGIN { top=1; skip=0; bad=0 }
+{
+  line=$0; sub(/\r$/, "", line)
+  if (index(line, "\042\042\042") || index(line, "\047\047\047")) { bad=1; exit 2 }
+  if (line ~ /^[[:space:]]*\[/) {
+    if (line !~ /^[[:space:]]*\[\[?[^]]+\]\]?[[:space:]]*(#.*)?$/) { bad=1; exit 2 }
+    top=0; header=line
+    sub(/[[:space:]]*#.*/, "", header); gsub(/[[:space:]\042\047]/, "", header)
+    skip=(header ~ /^\[model_providers\.cheapvibecode(\.|\])/)
+  }
+  if (skip) next
+  if (top && line ~ /^[[:space:]]*(model|model_reasoning_effort|model_provider|web_search)[[:space:]]*=/) next
+  if (top && line ~ /cheapvibecode/ && line !~ /^[[:space:]]*#/) { bad=1; exit 2 }
+  print line
+}
+END { if (bad) exit 2 }
+' "$INPUT" > "$KEPT" || { printf '%s\n' 'Configuration needs a manual merge. Nothing was replaced.' "Backup: $BACKUP" >&2; exit 1; }
+{
+  printf '%s\n' 'model = "${codexDefault}"' 'model_reasoning_effort = "high"' 'model_provider = "cheapvibecode"' 'web_search = "live"' ''
+  cat "$KEPT"
+  printf '\n%s\n' '[model_providers.cheapvibecode]' 'name = "CheapVibeCode"' 'base_url = "https://cheapvibecode.ru/backend-api/codex"' 'wire_api = "responses"' 'env_key = "CVC_API_KEY"' 'supports_websockets = false' 'requires_openai_auth = false'
+} > "$NEXT"
+# Prepare all shell profiles before replacing any of them.
+for PROFILE in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do
+  NAME=$(basename "$PROFILE")
+  [ ! -f "$PROFILE" ] || cp -p "$PROFILE" "$BACKUP/$NAME"
+  INPUT=/dev/null; [ ! -f "$PROFILE" ] || INPUT="$PROFILE"
+  sed -E '/^[[:space:]]*(export[[:space:]]+)?CVC_API_KEY=/d' "$INPUT" > "$BACKUP/$NAME.next"
+  printf '\n%s\n' "export CVC_API_KEY='$API_KEY'" >> "$BACKUP/$NAME.next"
+done
+mv "$NEXT" "$CONFIG"
+chmod 600 "$CONFIG"
+for PROFILE in "$HOME/.profile" "$HOME/.zprofile" "$HOME/.zshrc" "$HOME/.bashrc"; do
+  cat "$BACKUP/$(basename "$PROFILE").next" > "$PROFILE"
+  chmod 600 "$PROFILE"
+done
+if ! /bin/launchctl setenv CVC_API_KEY "$API_KEY"; then
+  printf '%s\n' 'Settings saved, but GUI key activation failed. Contact support before testing.' "Backup: $BACKUP" >&2
+  exit 1
+fi
+printf '%s\n' 'Codex configured. Node.js was not required.' "Backup: $BACKUP" 'Fully quit Codex and VS Code with Cmd+Q, then reopen. For CLI, open a new Terminal window.'
+PROMPT_PORT_CODEX_MAC`;
     return shellCommand`set -euo pipefail
 API_KEY='${key}'
 DIR="$HOME/.codex"
@@ -7144,11 +7246,11 @@ function enterApp(os) {
 
 // === IMAGE GENERATION ===
 const IMAGE_MODELS = {
-  'gpt-image-2': { name:'GPT Image 2', prices:{ low:50000, medium:100000, high:150000 } },
-  'nano-banana-2': { name:'Nano Banana 2', prices:{ low:100000 } },
-  'grok-imagine-image': { name:'Grok Imagine', prices:{ low:100000, medium:250000, high:350000 } }
+  'gpt-image-2.5-flare': { name:'GPT Image 2.5 Flare', qualities:['low','medium'] },
+  'nano-banana-2': { name:'Nano Banana 2', qualities:['low'] }
 };
-const imageState = { busy:false, epoch:0, controller:null, results:[], available:null, notice:'images_empty', error:false };
+const IMAGE_GENERATION_DISABLED = true;
+const imageState = { busy:false, epoch:0, controller:null, results:[], available:null, notice:'images_empty', error:false, file:null, preview:null, fileEpoch:0 };
 Object.assign(i18n.ru, {
   nav_images:'Фото', images_title:'От идеи — к изображению', images_intro:'Опишите сюжет, стиль и детали. ИИ создаст картинку по вашему описанию.',
   images_prompt:'Что нарисовать?', images_placeholder:'Например: уютный дом у озера, утренний туман, мягкий свет, фотореализм', images_quality:'Качество', images_count:'Количество', images_size:'1024 × 1024 · PNG, JPEG или WebP',
@@ -7159,6 +7261,112 @@ Object.assign(i18n.en, {
   images_prompt:'What should we draw?', images_placeholder:'For example: a cozy lakeside house, morning mist, soft light, photorealistic', images_quality:'Quality', images_count:'Quantity', images_size:'1024 × 1024 · PNG, JPEG or WebP',
   images_session:'Results stay in this tab until you refresh. Download the images you want to keep.', images_generate:'Create', images_working:'Creating images…', images_price:'Listed price: {price} tokens per image × {count}.', images_empty:'Your images will appear here.', images_wait:'Generation can take a few minutes. Keep this page open. There is no need to submit again.', images_done:'Your images are ready. Download them before refreshing.', images_download:'Download', images_prompt_required:'Describe the image.', images_unavailable:'This model is unavailable for your API key.', images_unknown:'The result could not be retrieved. The request may have been accepted and charged. Check your balance and history before generating again. Try a VPN if you have connection issues.', images_rejected:'The service rejected the request. Check your prompt and model access.', images_funds:'Not enough tokens for these settings.', images_config:'The image service is not configured yet. Please try later.'
 });
+Object.assign(i18n.ru, {
+  images_mode:'Режим', images_mode_generate:'Создать изображение', images_mode_edit:'Изменить фото', images_size:'Размер', images_file:'Исходное фото',
+  images_file_hint:'PNG, JPEG или WebP, до 10 МБ. Фото отправится только при нажатии «Создать».', images_file_required:'Выберите исходное фото для редактирования.', images_file_invalid:'Нужен файл PNG, JPEG или WebP размером до 10 МБ.',
+  images_tariff:'Запрос платный: расход определяется тарифом выбранной модели. Точная стоимость заранее не подтверждена. Для редактирования — одно изображение за запрос.', images_disabled:'Генерация через сайт временно отключена. Используйте PowerShell-команду ниже — она доступна.',
+  images_ps_title:'Через PowerShell', images_ps_hint:'Команда использует выбранные модель, качество, размер и описание. Вставьте её целиком в PowerShell 5.1 или 7+. Ключ вводится отдельно, скрытым вводом; изображения сохраняются в папку «Изображения» → Prompt Port. Сайт и команда — два отдельных платных запроса, запускайте только один вариант.',
+  images_ps_api:'Способ запроса', images_ps_copy:'Скопировать команду', images_ps_copied:'Команда скопирована. Ключ нужно ввести в PowerShell.', images_ps_failed:'Не удалось скопировать. Выделите команду и скопируйте вручную.', images_ps_edit:'Для редактирования используется Images Edit API.'
+});
+Object.assign(i18n.en, {
+  images_mode:'Mode', images_mode_generate:'Create an image', images_mode_edit:'Edit a photo', images_size:'Size', images_file:'Source photo',
+  images_file_hint:'PNG, JPEG or WebP, up to 10 MB. Uploaded only when you click Create.', images_file_required:'Choose a source photo to edit.', images_file_invalid:'Choose a PNG, JPEG or WebP up to 10 MB.',
+  images_tariff:'Paid request: usage depends on the model tariff. The exact cost is not confirmed in advance. Edits produce one image per request.', images_disabled:'Generation through the website is temporarily disabled. Use the PowerShell command below — it is available.',
+  images_ps_title:'Use PowerShell', images_ps_hint:'The command uses the selected model, quality, size and prompt. Paste the entire command into PowerShell 5.1 or 7+. Enter your key separately using hidden input. Images are saved to Pictures → Prompt Port. The website and command make separate paid requests; use only one.',
+  images_ps_api:'Request API', images_ps_copy:'Copy command', images_ps_copied:'Command copied. Enter your key in PowerShell.', images_ps_failed:'Copy failed. Select the command and copy it manually.', images_ps_edit:'Editing uses the Images Edit API.'
+});
+function buildImagePowerShell(options) {
+  const quote = text => "'" + String(text).replace(/'/g,"''") + "'";
+  const edit = options.mode === 'edit', responses = !edit && options.api === 'responses';
+  const values = {model:options.model, [responses?'input':'prompt']:options.prompt, size:options.size, quality:options.quality};
+  if (!edit) values.n=options.n;
+  if (!edit && !responses) values.response_format='b64_json';
+  const route=edit?'images/edits':responses?'responses':'images/generations';
+  return String.raw`& {
+  $ErrorActionPreference = 'Stop'
+  Add-Type -AssemblyName System.Net.Http
+  $secret = Read-Host 'Your API key (hidden input)' -AsSecureString
+  $pointer = [IntPtr]::Zero
+  $http = $null; $body = $null; $response = $null; $fileStream = $null
+  try {
+    $pointer = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secret)
+    $key = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($pointer).Trim()
+    if ([string]::IsNullOrWhiteSpace($key)) { throw 'API key is required.' }
+    $http = New-Object System.Net.Http.HttpClient
+    $http.Timeout = [TimeSpan]::FromMinutes(6)
+    $http.DefaultRequestHeaders.Authorization = New-Object System.Net.Http.Headers.AuthenticationHeaderValue('Bearer', $key)
+    $values = ${quote(JSON.stringify(values))} | ConvertFrom-Json
+    if ([string]::IsNullOrWhiteSpace($values.${responses?'input':'prompt'})) { $values.${responses?'input':'prompt'} = Read-Host 'Describe the image or the changes' }
+    if ([string]::IsNullOrWhiteSpace($values.${responses?'input':'prompt'})) { throw 'Prompt is required.' }
+${edit ? String.raw`    $imagePath = (Read-Host 'Full path to the source PNG, JPEG or WebP').Trim().Trim('"')
+    $file = Get-Item -LiteralPath $imagePath -ErrorAction Stop
+    if ($file.PSIsContainer -or $file.Length -gt 10MB -or $file.Extension.ToLowerInvariant() -notin @('.png','.jpg','.jpeg','.webp')) { throw 'Choose a PNG, JPEG or WebP up to 10 MB.' }
+    $body = New-Object System.Net.Http.MultipartFormDataContent
+    foreach ($property in $values.PSObject.Properties) { $body.Add((New-Object System.Net.Http.StringContent([string]$property.Value)), $property.Name) }
+    $fileStream = [IO.File]::OpenRead($file.FullName)
+    $part = New-Object System.Net.Http.StreamContent($fileStream)
+    $mime = if ($file.Extension -eq '.png') { 'image/png' } elseif ($file.Extension -eq '.webp') { 'image/webp' } else { 'image/jpeg' }
+    $part.Headers.ContentType = New-Object System.Net.Http.Headers.MediaTypeHeaderValue($mime)
+    $body.Add($part, 'image', ('input' + $file.Extension.ToLowerInvariant()))` : String.raw`    $body = New-Object System.Net.Http.StringContent(($values | ConvertTo-Json -Depth 10), [Text.Encoding]::UTF8, 'application/json')`}
+    Write-Host 'Generating. This is a paid request; do not run it twice.'
+    $response = $http.PostAsync('https://ru.cheapvibecode.ru/v1/${route}', $body).GetAwaiter().GetResult()
+    if (-not $response.IsSuccessStatusCode) { throw ('API returned HTTP ' + [int]$response.StatusCode + '. Check key, balance, model access and network.') }
+    $raw = $response.Content.ReadAsStringAsync().GetAwaiter().GetResult()
+    $result = $raw | ConvertFrom-Json
+    $images = @($result.data | Where-Object { $_.b64_json } | ForEach-Object { $_.b64_json })
+    if ($images.Count -eq 0) { $images = @($result.output | Where-Object { $_.type -eq 'image_generation_call' -and $_.result } | ForEach-Object { $_.result }) }
+    if ($images.Count -eq 0) { throw 'No base64 image returned. Check request history before retrying.' }
+    $pictures = [Environment]::GetFolderPath('MyPictures')
+    if (-not $pictures) { throw 'Pictures folder is unavailable.' }
+    $folder = Join-Path $pictures 'Prompt Port'
+    [IO.Directory]::CreateDirectory($folder) | Out-Null
+    foreach ($encoded in $images) {
+      $bytes = [Convert]::FromBase64String($encoded)
+      $ext = if ($bytes.Length -ge 8 -and $bytes[0] -eq 137 -and $bytes[1] -eq 80 -and $bytes[2] -eq 78 -and $bytes[3] -eq 71) { '.png' } elseif ($bytes.Length -ge 3 -and $bytes[0] -eq 255 -and $bytes[1] -eq 216) { '.jpg' } elseif ($bytes.Length -ge 12 -and [Text.Encoding]::ASCII.GetString($bytes,0,4) -eq 'RIFF' -and [Text.Encoding]::ASCII.GetString($bytes,8,4) -eq 'WEBP') { '.webp' } else { throw 'Unexpected image format.' }
+      $outputPath = Join-Path $folder (([Guid]::NewGuid().ToString()) + $ext)
+      [IO.File]::WriteAllBytes($outputPath, $bytes)
+      Write-Host ('Saved: ' + $outputPath)
+    }
+  } catch {
+    Write-Warning 'The request or saving failed. It may already have been charged. Check balance and request history before retrying. For network errors, try another connection or VPN.'
+    throw
+  } finally {
+    if ($response) { $response.Dispose() }
+    if ($body) { $body.Dispose() }
+    if ($fileStream) { $fileStream.Dispose() }
+    if ($http) { $http.Dispose() }
+    if ($pointer -ne [IntPtr]::Zero) { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($pointer) }
+    $key = $null; $secret.Dispose()
+  }
+}`;
+}
+function renderImagePowerShell() {
+  const edit = $('#imageMode').value === 'edit';
+  $('#imagePSApi').disabled = edit;
+  $('#imagePSCode').textContent = buildImagePowerShell({mode:$('#imageMode').value,api:$('#imagePSApi').value,model:$('#imageModel').value,prompt:$('#imagePrompt').value.trim(),size:$('#imageSize').value,quality:$('#imageQuality').value,n:Number($('#imageCount').value)});
+  $('#imagePSNotice').textContent = edit ? t('images_ps_edit') : '';
+}
+async function selectImageFile() {
+  const epoch = ++imageState.fileEpoch;
+  const file = $('#imageFile').files?.[0];
+  imageState.file=null;
+  if(imageState.preview) URL.revokeObjectURL(imageState.preview);
+  imageState.preview=null; $('#imagePreview').hidden=true; $('#imagePreview').removeAttribute('src');
+  if (!file) return;
+  try {
+    if (file.size > 10*1024*1024 || !['image/png','image/jpeg','image/webp'].includes(file.type)) throw new Error('invalid');
+    const bytes = new Uint8Array(await file.slice(0,16).arrayBuffer());
+    const blob = imageBlob(btoa(String.fromCharCode(...bytes)));
+    if (blob.type !== file.type) throw new Error('invalid');
+    if (epoch !== imageState.fileEpoch) return;
+    imageState.file=file; imageState.preview=URL.createObjectURL(file); $('#imagePreview').src=imageState.preview; $('#imagePreview').hidden=false;
+    imageState.notice='images_empty'; imageState.error=false;
+  } catch {
+    if(epoch !== imageState.fileEpoch) return;
+    $('#imageFile').value=''; imageState.notice='images_file_invalid'; imageState.error=true;
+  }
+  renderImageControls();
+}
 function renderImageControls() {
   const select = $('#imageModel');
   if (!select) return;
@@ -7166,18 +7374,22 @@ function renderImageControls() {
   if (select.selectedOptions[0]?.disabled) select.value = [...select.options].find(option => !option.disabled)?.value || '';
   const spec = IMAGE_MODELS[select.value];
   const quality = $('#imageQuality'), previous = quality.value;
-  quality.innerHTML = Object.keys(spec?.prices || {}).map(q => `<option value="${q}">${q[0].toUpperCase()+q.slice(1)}</option>`).join('');
-  if (Object.hasOwn(spec?.prices || {}, previous)) quality.value = previous;
-  const price = spec?.prices[quality.value] || 0, count = Number($('#imageCount').value);
-  $('#imageGenerate').textContent = imageState.busy ? t('images_working') : `${t('images_generate')} · ${formatUsageNumber(price * count)} ${t('tokens')}`;
-  $('#imageGenerate').disabled = imageState.busy || !spec;
-  $('#imagePriceNote').textContent = t('images_price').replace('{price}',formatUsageNumber(price)).replace('{count}',count);
-  for (const control of $('#imageForm').querySelectorAll('select,textarea')) control.disabled = imageState.busy;
+  quality.innerHTML = (spec?.qualities || []).map(q => `<option value="${q}">${q[0].toUpperCase()+q.slice(1)}</option>`).join('');
+  if (spec?.qualities.includes(previous)) quality.value = previous;
+  const edit = $('#imageMode').value === 'edit';
+  $('#imageUpload').hidden = !edit;
+  if (edit) $('#imageCount').value='1';
+  $('#imageGenerate').textContent = imageState.busy ? t('images_working') : t('images_generate');
+  $('#imageGenerate').disabled = IMAGE_GENERATION_DISABLED || imageState.busy || !spec;
+  $('#imagePriceNote').textContent = t('images_tariff');
+  for (const control of $('#imageForm').querySelectorAll('select,textarea,input')) control.disabled = imageState.busy;
+  $('#imageCount').disabled = imageState.busy || edit;
   $('#imageForm').setAttribute('aria-busy',String(imageState.busy));
   const notice = $('#imageNotice');
   notice.className = 'image-notice' + (imageState.error ? ' is-error' : '');
   notice.textContent = t(imageState.notice);
   for (const link of $('#imageResults').querySelectorAll('a')) link.textContent = t('images_download');
+  renderImagePowerShell();
 }
 function resetImages() {
   imageState.epoch += 1;
@@ -7186,6 +7398,10 @@ function resetImages() {
   imageState.busy = false;
   for (const item of imageState.results) URL.revokeObjectURL(item.url);
   imageState.results = [];
+  imageState.fileEpoch += 1;
+  imageState.file=null;
+  if(imageState.preview) URL.revokeObjectURL(imageState.preview);
+  imageState.preview=null; $('#imageFile').value=''; $('#imagePreview').hidden=true; $('#imagePreview').removeAttribute('src');
   imageState.available = null;
   imageState.notice = 'images_empty'; imageState.error = false;
   $('#imageResults').replaceChildren();
@@ -7201,18 +7417,32 @@ function imageBlob(encoded) {
 }
 async function generateImages(event) {
   event.preventDefault();
+  if (IMAGE_GENERATION_DISABLED) {
+    imageState.notice='images_disabled'; imageState.error=true; renderImageControls(); return;
+  }
   if (imageState.busy) return;
   const apiKey = state.apiKey.trim(), model = $('#imageModel').value, quality = $('#imageQuality').value, n = Number($('#imageCount').value), prompt = $('#imagePrompt').value.trim();
+  const edit=$('#imageMode').value === 'edit', size=$('#imageSize').value;
   let errorKey = !apiKey ? 'chat_no_key' : !prompt ? 'images_prompt_required' : !Object.hasOwn(IMAGE_MODELS,model) || (imageState.available !== null && !imageState.available.includes(model)) ? 'images_unavailable' : '';
-  if (!errorKey && (prompt.length > 4000 || ![1,2,4].includes(n) || !Object.hasOwn(IMAGE_MODELS[model].prices,quality))) errorKey = 'images_rejected';
-  if (!errorKey && state.balance.status === 'success' && Number(state.balance.value) < IMAGE_MODELS[model].prices[quality] * n) errorKey = 'images_funds';
+  if (!errorKey && (prompt.length > 4000 || ![1,2,4].includes(n) || !IMAGE_MODELS[model].qualities.includes(quality) || !['1024x1024','1536x1024'].includes(size) || (edit && n!==1))) errorKey = 'images_rejected';
+  if (!errorKey && edit && !imageState.file) errorKey='images_file_required';
+  if (!errorKey && state.balance.status === 'success' && Number(state.balance.value) <= 0) errorKey = 'images_funds';
   if (errorKey) { imageState.notice=errorKey; imageState.error=true; renderImageControls(); return; }
   const epoch = imageState.epoch, controller = new AbortController();
   imageState.busy=true; imageState.controller=controller; imageState.notice='images_wait'; imageState.error=false; renderImageControls();
   const timeout = setTimeout(() => controller.abort(), 240000);
   const pending = [];
   try {
-    const response = await fetch(CHAT_API_ENDPOINT, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({action:'images',api_key:apiKey,payload:{model,prompt,quality,n,size:'1024x1024',response_format:'b64_json'}}), signal:controller.signal });
+    let requestBody, headers;
+    if (edit) {
+      requestBody=new FormData();
+      for(const [key,value] of Object.entries({action:'image-edit',api_key:apiKey,model,prompt,quality,size,n:1})) requestBody.append(key,String(value));
+      requestBody.append('image',imageState.file,'input.'+imageState.file.type.split('/')[1]);
+    } else {
+      headers={'Content-Type':'application/json'};
+      requestBody=JSON.stringify({action:'images',api_key:apiKey,payload:{model,prompt,quality,n,size,response_format:'b64_json'}});
+    }
+    const response = await fetch(CHAT_API_ENDPOINT, { method:'POST', headers, body:requestBody, signal:controller.signal });
     if (!response.ok) {
       let body; try { body=await response.json(); } catch {}
       const key = body?.error?.code === 'unsupported_action' ? 'images_config' : response.status===401 ? 'chat_error_401' : response.status===402 ? 'images_funds' : response.status===429 ? 'chat_error_429' : response.status===400 || response.status===403 ? 'images_rejected' : 'images_unknown';
@@ -7318,7 +7548,13 @@ async function init() {
   showKeyStage();
 
   $('#imageForm').addEventListener('submit', generateImages);
-  for (const id of ['imageModel','imageQuality','imageCount']) $('#'+id).addEventListener('change', renderImageControls);
+  for (const id of ['imageModel','imageQuality','imageCount','imageSize','imageMode','imagePSApi']) $('#'+id).addEventListener('change', renderImageControls);
+  $('#imageFile').addEventListener('change',selectImageFile);
+  $('#imagePrompt').addEventListener('input',renderImagePowerShell);
+  $('#imagePSCopy').addEventListener('click',async () => {
+    try { await copyText($('#imagePSCode').textContent); $('#imagePSNotice').textContent=t('images_ps_copied'); }
+    catch { $('#imagePSNotice').textContent=t('images_ps_failed'); }
+  });
 
   $$('[data-lang]').forEach(button => button.addEventListener('click', () => {
     if (button.dataset.lang === state.language) return;
@@ -7580,3 +7816,4 @@ setTimeout(hidePageLoader, 3500);
   </script>
 </body>
 </html>
+
