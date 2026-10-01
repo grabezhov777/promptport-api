@@ -2481,32 +2481,39 @@ body::before { background:radial-gradient(circle at 18% 24%,rgba(81,177,116,.13)
   .guide-index { display:none; }
 }
 .image-studio { display:grid; grid-template-columns:minmax(280px,360px) minmax(0,1fr); gap:24px; align-items:start; }
-.image-settings,.image-output { padding:28px; border-radius:28px; background:rgba(19,33,26,.68); backdrop-filter:blur(28px); -webkit-backdrop-filter:blur(28px); box-shadow:inset 0 1px 1px rgba(220,255,232,.2),inset 0 0 0 1px rgba(159,224,183,.12); min-width:0; }
+.image-settings,.image-output { position:relative; padding:28px; border:0; border-radius:28px; background:rgba(32,35,40,.82); backdrop-filter:blur(34px); -webkit-backdrop-filter:blur(34px); box-shadow:inset 0 1px 1px rgba(255,255,255,.16),0 18px 48px rgba(0,0,0,.24); min-width:0; overflow:hidden; }
+.image-settings::before,.image-output::before { content:''; position:absolute; inset:0; border-radius:inherit; padding:1px; background:linear-gradient(180deg,rgba(255,255,255,.38),rgba(255,255,255,.11) 24%,transparent 48%,transparent 68%,rgba(255,255,255,.1) 84%,rgba(255,255,255,.28)); -webkit-mask:linear-gradient(#000 0 0) content-box,linear-gradient(#000 0 0); -webkit-mask-composite:xor; mask-composite:exclude; pointer-events:none; }
 .image-settings { display:flex; flex-direction:column; gap:12px; }
-.image-settings label { display:block; color:#e2f3e8; font-size:12px; margin-bottom:4px; }
-.image-settings textarea,.image-settings select { width:100%; min-width:0; color:#effff4; background:#20362a; border:1px solid rgba(159,224,183,.22); border-radius:12px; padding:12px; font:inherit; font-size:13px; }
+.image-settings label { display:block; color:rgba(255,255,255,.7); font-size:12px; margin-bottom:4px; }
+.image-settings textarea,.image-settings select { width:100%; min-width:0; color:#f1f3f5; background:rgba(10,13,18,.68); border:1px solid rgba(255,255,255,.14); border-radius:15px; padding:12px; font:inherit; font-size:13px; transition:background .28s ease,box-shadow .28s ease,border-color .28s ease,transform .28s ease; }
 .image-settings textarea { resize:vertical; min-height:155px; line-height:1.7; }
-.image-settings textarea:focus,.image-settings select:focus { outline:2px solid #9fe0b7; outline-offset:2px; }
+.image-settings textarea:focus,.image-settings select:focus { outline:0; border-color:rgba(255,255,255,.42); background:rgba(18,21,27,.78); box-shadow:0 0 0 3px rgba(255,255,255,.08),0 10px 26px rgba(0,0,0,.2); transform:translateY(-1px); }
+.image-settings select,.image-powershell select { appearance:none; -webkit-appearance:none; padding-right:40px; cursor:pointer; background-image:linear-gradient(45deg,transparent 50%,rgba(255,255,255,.72) 50%),linear-gradient(135deg,rgba(255,255,255,.72) 50%,transparent 50%); background-position:calc(100% - 19px) 50%,calc(100% - 13px) 50%; background-size:6px 6px,6px 6px; background-repeat:no-repeat; }
+.image-settings select:hover,.image-powershell select:hover { background-color:rgba(255,255,255,.1); border-color:rgba(255,255,255,.28); }
+.image-settings option,.image-powershell option { background:#171a20; color:#f1f3f5; }
 .image-options { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-.image-hint { color:rgba(226,243,232,.72); font-size:11px; line-height:1.7; margin:0; }
+.image-hint { color:rgba(255,255,255,.58); font-size:11px; line-height:1.7; margin:0; }
 .image-settings .primary-button { min-height:52px; font-size:12px; padding:12px; }
 .image-output { min-height:440px; }
-.image-notice { padding:18px; border-radius:16px; background:rgba(159,224,183,.07); color:#e2f3e8; line-height:1.7; font-size:13px; margin-bottom:16px; }
+.image-notice { padding:18px; border-radius:18px; background:rgba(255,255,255,.055); color:rgba(255,255,255,.82); line-height:1.7; font-size:13px; margin-bottom:16px; box-shadow:inset 0 1px rgba(255,255,255,.1); }
 .image-notice.is-error { color:#ffb9b9; background:rgba(185,48,48,.16); box-shadow:inset 0 0 0 1px rgba(255,123,123,.5); }
 .image-results { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
 .image-results figure { margin:0; min-width:0; }
 .image-results img { display:block; width:100%; aspect-ratio:1; object-fit:contain; border-radius:18px; background:rgba(0,0,0,.18); }
-.image-results a { display:inline-block; color:#b9f1cd; padding:12px 0; font-size:12px; }
-.image-results figcaption { font-size:11px; color:#b7c9bd; overflow-wrap:anywhere; }
+.image-results a { display:inline-block; color:#e4e7eb; padding:12px 0; font-size:12px; transition:color .22s ease,transform .22s ease; }
+.image-results a:hover { color:#fff; transform:translateX(2px); }
+.image-results figcaption { font-size:11px; color:rgba(255,255,255,.52); overflow-wrap:anywhere; }
 .image-preview { display:block; max-height:150px; max-width:100%; margin-top:12px; border-radius:14px; object-fit:contain; }
 .image-preview[hidden],#imageUpload[hidden] { display:none; }
 .image-settings input[type=file] { width:100%; font:inherit; font-size:12px; color:#e2f3e8; margin-bottom:8px; }
-.image-settings input::file-selector-button { background:#20362a; color:#effff4; border:0; border-radius:10px; padding:10px; cursor:pointer; }
+.image-settings input::file-selector-button { background:rgba(255,255,255,.1); color:#f1f3f5; border:1px solid rgba(255,255,255,.14); border-radius:11px; padding:10px; cursor:pointer; transition:background .22s ease,transform .22s ease; }
+.image-settings input::file-selector-button:hover { background:rgba(255,255,255,.18); transform:translateY(-1px); }
 .image-powershell { margin-top:24px; padding-top:20px; box-shadow:0 -1px rgba(159,224,183,.18); min-width:0; }
-.image-powershell summary { color:#dbf7e5; cursor:pointer; font-size:15px; padding:8px 0; }
+.image-powershell summary { color:rgba(255,255,255,.84); cursor:pointer; font-size:15px; padding:8px 0; transition:color .22s ease,letter-spacing .22s ease; }
+.image-powershell summary:hover { color:#fff; letter-spacing:.015em; }
 .image-powershell .image-hint { margin:12px 0; }
 .image-powershell label { display:block; margin:14px 0 8px; font-size:12px; }
-.image-powershell select { max-width:100%; background:#20362a; color:#effff4; padding:10px; border-radius:10px; }
+.image-powershell select { max-width:100%; background-color:rgba(10,13,18,.68); color:#f1f3f5; padding:10px; border-radius:15px; }
 .image-powershell pre { max-height:320px; overflow:auto; padding:18px; border-radius:14px; background:rgba(0,0,0,.3); font-size:11px; line-height:1.7; white-space:pre; }
 .image-powershell .primary-button { padding:12px 20px; font-size:12px; }
 .image-disabled-note { margin:0; padding:12px 14px; border-radius:12px; color:#ffe4a3; background:rgba(198,143,38,.14); box-shadow:inset 0 0 0 1px rgba(255,211,111,.3); font-size:11px; line-height:1.6; }
